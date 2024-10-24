@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.computecapability;
+
+// Import the Metadata from the core metadata.proto file
+import "metadata.proto";
+
+option go_package = "/api/mrdspb";
+
+// Enum to represent the ComputeCapabilityState
+enum ComputeCapabilityState {
+    ComputeCapabilityState_UNKNOWN = 0;
+    ComputeCapabilityState_PENDING = 1;
+    ComputeCapabilityState_ACTIVE = 2;
+    ComputeCapabilityState_INACTIVE = 3;
+}
+
+// Message representing the ComputeCapability
+message ComputeCapability {
+    // Metadata is the metadata that identifies the ComputeCapability.
+    core.Metadata metadata = 1;
+
+    // Name is the name of the ComputeCapability.
+    string name = 2;
+
+    // Status represents the current status of the ComputeCapability.
+    ComputeCapabilityStatus status = 3;
+
+    // ComputeCapabilityType is the type of the ComputeCapability.
+    string type = 4;
+
+    // Score is the score of the ComputeCapability. It is a score relative to other ComputeCapabilities
+    // of the same type. The higher the score, the better the ComputeCapability.
+    uint32 score = 5;
+}
+
+// Message representing the Status of a resource.
+message ComputeCapabilityStatus {
+    // State is the discrete condition of the resource.
+    ComputeCapabilityState state = 1;
+
+    // Message is a human-readable description of the resource's state.
+    string message = 2;
+}

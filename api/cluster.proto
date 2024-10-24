@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.cluster;
+
+// Import the Metadata from the core metadata.proto file
+import "metadata.proto";
+
+option go_package = "/api/mrdspb";
+
+// Enum to represent the ClusterState
+enum ClusterState {
+    ClusterState_UNKNOWN = 0;
+    ClusterState_PENDING = 1;
+    ClusterState_ACTIVE = 2;
+    ClusterState_INACTIVE = 3;
+}
+
+// Message representing the Cluster
+message Cluster {
+    // Metadata is the metadata that identifies the Cluster.
+    core.Metadata metadata = 1;
+
+    // Name is the name of the Cluster.
+    string name = 2;
+
+    // Status represents the current status of the Cluster.
+    ClusterStatus status = 3;
+}
+
+// Message representing the Status of a resource.
+message ClusterStatus {
+    // State is the discrete condition of the resource.
+    ClusterState state = 1;
+
+    // Message is a human-readable description of the resource's state.
+    string message = 2;
+}
