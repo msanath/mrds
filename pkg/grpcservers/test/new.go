@@ -11,6 +11,8 @@ import (
 	"github.com/msanath/mrds/pkg/grpcservers"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
+	"github.com/msanath/mrds/internal/ledger/deployment"
+	"github.com/msanath/mrds/internal/ledger/metainstance"
 	"github.com/msanath/mrds/internal/ledger/node"
 	// ++ledgerbuilder:Imports
 
@@ -58,6 +60,18 @@ func NewTestServer() (*TestServer, error) {
 	mrdspb.RegisterNodesServer(
 		gServer,
 		grpcservers.NewNodeService(nodeLedger),
+	)
+
+	deploymentLedger := deployment.NewLedger(storage.Deployment)
+	mrdspb.RegisterDeploymentsServer(
+		gServer,
+		grpcservers.NewDeploymentService(deploymentLedger),
+	)
+
+	metaInstanceLedger := metainstance.NewLedger(storage.MetaInstance)
+	mrdspb.RegisterMetaInstancesServer(
+		gServer,
+		grpcservers.NewMetaInstanceService(metaInstanceLedger),
 	)
 	// ++ledgerbuilder:TestServerRegister
 

@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.metainstance;
+
+import "metadata.proto";
+import "metainstance.proto";
+
+option go_package = "/api/mrdspb";
+
+// Service definition for managing MetaInstance records.
+service MetaInstances {
+    // Create a new MetaInstance.
+    rpc Create(CreateMetaInstanceRequest) returns (CreateMetaInstanceResponse);
+
+    // Get a MetaInstance by its metadata.
+    rpc GetByMetadata(GetMetaInstanceByMetadataRequest) returns (GetMetaInstanceResponse);
+
+    // Get a MetaInstance by its name.
+    rpc GetByName(GetMetaInstanceByNameRequest) returns (GetMetaInstanceResponse);
+
+    // Update the state of an existing MetaInstance.
+    rpc UpdateStatus(UpdateMetaInstanceStatusRequest) returns (UpdateMetaInstanceResponse);
+
+    // List MetaInstances that match the provided filters.
+    rpc List(ListMetaInstanceRequest) returns (ListMetaInstanceResponse);
+
+    // Delete a MetaInstance by its metadata.
+    rpc Delete(DeleteMetaInstanceRequest) returns (DeleteMetaInstanceResponse);
+}
+
+// Request to create a new MetaInstance.
+message CreateMetaInstanceRequest {
+    string name = 1;
+}
+
+// Response after creating a new MetaInstance.
+message CreateMetaInstanceResponse {
+    // The newly created MetaInstance record.
+    MetaInstance record = 1;
+}
+
+// Request to update the state and message of a MetaInstance.
+message UpdateMetaInstanceStatusRequest {
+    // The metadata of the MetaInstance to update.
+    core.Metadata metadata = 1;
+
+    // The new state of the MetaInstance.
+    MetaInstanceStatus status = 2;
+}
+
+// Response after updating the state of a MetaInstance.
+message UpdateMetaInstanceResponse {
+    // The updated MetaInstance record.
+    MetaInstance record = 1;
+}
+
+message GetMetaInstanceByMetadataRequest {
+    core.Metadata metadata = 1;
+}
+
+// Request for getting a MetaInstance by its name.
+message GetMetaInstanceByNameRequest {
+    // The name of the MetaInstance to get.
+    string name = 1;
+}
+
+// Response after fetching a MetaInstance.
+message GetMetaInstanceResponse {
+    // The MetaInstance record that was fetched.
+    MetaInstance record = 1;
+}
+
+// Request to list MetaInstances with specific filters.
+message ListMetaInstanceRequest {
+    // IN condition for filtering by IDs.
+    repeated string id_in = 1;
+
+    // IN condition for filtering by Names.
+    repeated string name_in = 2;
+
+    // Greater than or equal condition for filtering by version.
+    uint64 version_gte = 3;
+
+    // Less than or equal condition for filtering by version.
+    uint64 version_lte = 4;
+
+    // Equal condition for filtering by version.
+    uint64 version_eq = 5;
+
+    // IN condition for filtering by state.
+    repeated MetaInstanceState state_in = 6;
+
+    // NOT IN condition for filtering by state.
+    repeated MetaInstanceState state_not_in = 7;
+
+    // Whether to include soft-deleted resources in the query.
+    bool include_deleted = 8;
+
+    // Limit the number of results returned.
+    uint32 limit = 9;
+}
+
+// Response for listing MetaInstances.
+message ListMetaInstanceResponse {
+    // The list of MetaInstance records that match the query.
+    repeated MetaInstance records = 1;
+}
+
+// Request to delete a MetaInstance by its metadata.
+message DeleteMetaInstanceRequest {
+    // The metadata of the MetaInstance to delete.
+    core.Metadata metadata = 1;
+}
+
+// Response after deleting a MetaInstance.
+message DeleteMetaInstanceResponse {}

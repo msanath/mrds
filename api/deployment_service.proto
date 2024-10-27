@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.deployment;
+
+import "metadata.proto";
+import "deployment.proto";
+
+option go_package = "/api/mrdspb";
+
+// Service definition for managing Deployment records.
+service Deployments {
+    // Create a new Deployment.
+    rpc Create(CreateDeploymentRequest) returns (CreateDeploymentResponse);
+
+    // Get a Deployment by its metadata.
+    rpc GetByMetadata(GetDeploymentByMetadataRequest) returns (GetDeploymentResponse);
+
+    // Get a Deployment by its name.
+    rpc GetByName(GetDeploymentByNameRequest) returns (GetDeploymentResponse);
+
+    // Update the state of an existing Deployment.
+    rpc UpdateStatus(UpdateDeploymentStatusRequest) returns (UpdateDeploymentResponse);
+
+    // List Deployments that match the provided filters.
+    rpc List(ListDeploymentRequest) returns (ListDeploymentResponse);
+
+    // Delete a Deployment by its metadata.
+    rpc Delete(DeleteDeploymentRequest) returns (DeleteDeploymentResponse);
+}
+
+// Request to create a new Deployment.
+message CreateDeploymentRequest {
+    string name = 1;
+}
+
+// Response after creating a new Deployment.
+message CreateDeploymentResponse {
+    // The newly created Deployment record.
+    Deployment record = 1;
+}
+
+// Request to update the state and message of a Deployment.
+message UpdateDeploymentStatusRequest {
+    // The metadata of the Deployment to update.
+    core.Metadata metadata = 1;
+
+    // The new state of the Deployment.
+    DeploymentStatus status = 2;
+}
+
+// Response after updating the state of a Deployment.
+message UpdateDeploymentResponse {
+    // The updated Deployment record.
+    Deployment record = 1;
+}
+
+message GetDeploymentByMetadataRequest {
+    core.Metadata metadata = 1;
+}
+
+// Request for getting a Deployment by its name.
+message GetDeploymentByNameRequest {
+    // The name of the Deployment to get.
+    string name = 1;
+}
+
+// Response after fetching a Deployment.
+message GetDeploymentResponse {
+    // The Deployment record that was fetched.
+    Deployment record = 1;
+}
+
+// Request to list Deployments with specific filters.
+message ListDeploymentRequest {
+    // IN condition for filtering by IDs.
+    repeated string id_in = 1;
+
+    // IN condition for filtering by Names.
+    repeated string name_in = 2;
+
+    // Greater than or equal condition for filtering by version.
+    uint64 version_gte = 3;
+
+    // Less than or equal condition for filtering by version.
+    uint64 version_lte = 4;
+
+    // Equal condition for filtering by version.
+    uint64 version_eq = 5;
+
+    // IN condition for filtering by state.
+    repeated DeploymentState state_in = 6;
+
+    // NOT IN condition for filtering by state.
+    repeated DeploymentState state_not_in = 7;
+
+    // Whether to include soft-deleted resources in the query.
+    bool include_deleted = 8;
+
+    // Limit the number of results returned.
+    uint32 limit = 9;
+}
+
+// Response for listing Deployments.
+message ListDeploymentResponse {
+    // The list of Deployment records that match the query.
+    repeated Deployment records = 1;
+}
+
+// Request to delete a Deployment by its metadata.
+message DeleteDeploymentRequest {
+    // The metadata of the Deployment to delete.
+    core.Metadata metadata = 1;
+}
+
+// Response after deleting a Deployment.
+message DeleteDeploymentResponse {}
