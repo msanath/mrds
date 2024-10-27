@@ -11,6 +11,7 @@ import (
 	"github.com/msanath/mrds/pkg/grpcservers"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
+	"github.com/msanath/mrds/internal/ledger/node"
 	// ++ledgerbuilder:Imports
 
 	"github.com/msanath/gondolf/pkg/simplesql/test"
@@ -51,6 +52,12 @@ func NewTestServer() (*TestServer, error) {
 	mrdspb.RegisterComputeCapabilitiesServer(
 		gServer,
 		grpcservers.NewComputeCapabilityService(computeCapabilityLedger),
+	)
+
+	nodeLedger := node.NewLedger(storage.Node)
+	mrdspb.RegisterNodesServer(
+		gServer,
+		grpcservers.NewNodeService(nodeLedger),
 	)
 	// ++ledgerbuilder:TestServerRegister
 

@@ -7,6 +7,7 @@ import (
 	"github.com/msanath/gondolf/pkg/simplesql"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
+	"github.com/msanath/mrds/internal/ledger/node"
 	// ++ledgerbuilder:Imports
 
 	"github.com/jmoiron/sqlx"
@@ -15,6 +16,7 @@ import (
 type SQLStorage struct {
 	Cluster           cluster.Repository
 	ComputeCapability computecapability.Repository
+	Node              node.Repository
 	// ++ledgerbuilder:RepositoryInterface
 }
 
@@ -26,6 +28,7 @@ func NewSQLStorage(
 
 	schemaMigrations = append(schemaMigrations, clusterTableMigrations...)
 	schemaMigrations = append(schemaMigrations, computeCapabilityTableMigrations...)
+	schemaMigrations = append(schemaMigrations, nodeTableMigrations...)
 	// ++ledgerbuilder:Migrations
 
 	var errHandler simplesql.ErrHandler
@@ -46,6 +49,7 @@ func NewSQLStorage(
 	return &SQLStorage{
 		Cluster:           newClusterStorage(simpleDB),
 		ComputeCapability: newComputeCapabilityStorage(simpleDB),
+		Node:              newNodeStorage(simpleDB),
 		// ++ledgerbuilder:RepoInstance
 	}, nil
 }

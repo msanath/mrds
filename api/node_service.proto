@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.node;
+
+import "metadata.proto";
+import "node.proto";
+
+option go_package = "/api/mrdspb";
+
+// Service definition for managing Node records.
+service Nodes {
+    // Create a new Node.
+    rpc Create(CreateNodeRequest) returns (CreateNodeResponse);
+
+    // Get a Node by its metadata.
+    rpc GetByMetadata(GetNodeByMetadataRequest) returns (GetNodeResponse);
+
+    // Get a Node by its name.
+    rpc GetByName(GetNodeByNameRequest) returns (GetNodeResponse);
+
+    // Update the state of an existing Node.
+    rpc UpdateState(UpdateNodeStateRequest) returns (UpdateNodeResponse);
+
+    // List Nodes that match the provided filters.
+    rpc List(ListNodeRequest) returns (ListNodeResponse);
+
+    // Delete a Node by its metadata.
+    rpc Delete(DeleteNodeRequest) returns (DeleteNodeResponse);
+}
+
+// Request to create a new Node.
+message CreateNodeRequest {
+    string name = 1;
+    string update_domain = 2;
+    Resources total_resources = 3;
+    Resources system_reserved_resources = 4;
+}
+
+// Response after creating a new Node.
+message CreateNodeResponse {
+    // The newly created Node record.
+    Node record = 1;
+}
+
+// Request to update the state and message of a Node.
+message UpdateNodeStateRequest {
+    // The metadata of the Node to update.
+    core.Metadata metadata = 1;
+
+    // The new state of the Node.
+    NodeStatus status = 2;
+
+    // The ID of the Cluster that the Node belongs to.
+    // This field is required when transitioning to the ALLOCATED state.
+    string cluster_id = 3;
+}
+
+// Response after updating the state of a Node.
+message UpdateNodeResponse {
+    // The updated Node record.
+    Node record = 1;
+}
+
+message GetNodeByMetadataRequest {
+    core.Metadata metadata = 1;
+}
+
+// Request for getting a Node by its name.
+message GetNodeByNameRequest {
+    // The name of the Node to get.
+    string name = 1;
+}
+
+// Response after fetching a Node.
+message GetNodeResponse {
+    // The Node record that was fetched.
+    Node record = 1;
+}
+
+// Request to list Nodes with specific filters.
+message ListNodeRequest {
+    // IN condition for filtering by IDs.
+    repeated string id_in = 1;
+
+    // IN condition for filtering by Names.
+    repeated string name_in = 2;
+
+    // Greater than or equal condition for filtering by version.
+    uint64 version_gte = 3;
+
+    // Less than or equal condition for filtering by version.
+    uint64 version_lte = 4;
+
+    // Equal condition for filtering by version.
+    uint64 version_eq = 5;
+
+    // IN condition for filtering by state.
+    repeated NodeState state_in = 6;
+
+    // NOT IN condition for filtering by state.
+    repeated NodeState state_not_in = 7;
+
+    // Whether to include soft-deleted resources in the query.
+    bool include_deleted = 8;
+
+    // Limit the number of results returned.
+    uint32 limit = 9;
+
+    // Filter by the ID of the Cluster that the Node belongs to.
+    repeated string cluster_id_in = 10;
+
+    // Filter by the update domain of the Node.
+    repeated string update_domain_in = 11;
+
+    // Filter by Remaining Resources.
+    uint32 remaining_cores_gte = 12;
+    uint32 remaining_cores_lte = 13;
+    uint32 remaining_memory_gte = 14;
+    uint32 remaining_memory_lte = 15;
+}
+
+// Response for listing Nodes.
+message ListNodeResponse {
+    // The list of Node records that match the query.
+    repeated Node records = 1;
+}
+
+// Request to delete a Node by its metadata.
+message DeleteNodeRequest {
+    // The metadata of the Node to delete.
+    core.Metadata metadata = 1;
+}
+
+// Response after deleting a Node.
+message DeleteNodeResponse {}

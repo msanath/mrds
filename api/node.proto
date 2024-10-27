@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.node;
+
+// Import the Metadata from the core metadata.proto file
+import "metadata.proto";
+
+option go_package = "/api/mrdspb";
+
+// Enum to represent the NodeState
+enum NodeState {
+    NodeState_UNKNOWN = 0;
+	NodeState_UNALLOCATED = 1;
+    NodeState_ALLOCATING = 2;
+    NodeState_ALLOCATED = 3;
+    NodeState_EVICTED = 4;
+    NodeState_SANITIZING = 5;
+}
+
+// Message representing the Node
+message Node {
+    // Metadata is the metadata that identifies the Node.
+    core.Metadata metadata = 1;
+
+    // Name is the name of the Node.
+    string name = 2;
+
+    // Status represents the current status of the Node.
+    NodeStatus status = 3;
+
+    // ClusterID is the ID of the Cluster that the Node belongs to.
+    string cluster_id = 4;
+
+    // TotalResources is the total resources available on the Node.
+    Resources total_resources = 5;
+
+    // SystemReservedResources is the resources reserved by the system on the Node.
+    Resources system_reserved_resources = 6;
+
+    // RemainingResources is the remaining resources available on the Node.
+    Resources remaining_resources = 7;
+
+    // UpdateDomain is the update domain of the Node.
+    string update_domain = 8;
+}
+
+message Resources {
+    // Cores is the number of CPU cores available on the Node.
+    uint32 cores = 1;
+
+    // Memory is the amount of memory available on the Node in bytes.
+    uint32 memory = 2;
+}
+
+// Message representing the Status of a resource.
+message NodeStatus {
+    // State is the discrete condition of the resource.
+    NodeState state = 1;
+
+    // Message is a human-readable description of the resource's state.
+    string message = 2;
+}
