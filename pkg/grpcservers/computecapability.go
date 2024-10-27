@@ -92,7 +92,7 @@ func (s *ComputeCapabilityService) GetByName(ctx context.Context, req *mrdspb.Ge
 }
 
 // UpdateState updates the state and message of an existing ComputeCapability
-func (s *ComputeCapabilityService) UpdateState(ctx context.Context, req *mrdspb.UpdateComputeCapabilityStateRequest) (*mrdspb.UpdateComputeCapabilityResponse, error) {
+func (s *ComputeCapabilityService) UpdateStatus(ctx context.Context, req *mrdspb.UpdateComputeCapabilityStatusRequest) (*mrdspb.UpdateComputeCapabilityResponse, error) {
 	updateResponse, err := s.ledger.UpdateStatus(ctx, &computecapability.UpdateStateRequest{
 		Metadata: core.Metadata{
 			ID:      req.Metadata.Id,

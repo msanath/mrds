@@ -127,7 +127,7 @@ func (s *NodeService) GetByName(ctx context.Context, req *mrdspb.GetNodeByNameRe
 }
 
 // UpdateState updates the state and message of an existing Node
-func (s *NodeService) UpdateState(ctx context.Context, req *mrdspb.UpdateNodeStateRequest) (*mrdspb.UpdateNodeResponse, error) {
+func (s *NodeService) UpdateStatus(ctx context.Context, req *mrdspb.UpdateNodeStatusRequest) (*mrdspb.UpdateNodeResponse, error) {
 	updateResponse, err := s.ledger.UpdateStatus(ctx, &node.UpdateStatusRequest{
 		Metadata: core.Metadata{
 			ID:      req.Metadata.Id,

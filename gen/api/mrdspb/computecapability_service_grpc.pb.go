@@ -22,7 +22,7 @@ const (
 	ComputeCapabilities_Create_FullMethodName        = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Create"
 	ComputeCapabilities_GetByMetadata_FullMethodName = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByMetadata"
 	ComputeCapabilities_GetByName_FullMethodName     = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByName"
-	ComputeCapabilities_UpdateState_FullMethodName   = "/proto.mrds.ledger.computecapability.ComputeCapabilities/UpdateState"
+	ComputeCapabilities_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.computecapability.ComputeCapabilities/UpdateStatus"
 	ComputeCapabilities_List_FullMethodName          = "/proto.mrds.ledger.computecapability.ComputeCapabilities/List"
 	ComputeCapabilities_Delete_FullMethodName        = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Delete"
 )
@@ -40,7 +40,7 @@ type ComputeCapabilitiesClient interface {
 	// Get a ComputeCapability by its name.
 	GetByName(ctx context.Context, in *GetComputeCapabilityByNameRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error)
 	// Update the state of an existing ComputeCapability.
-	UpdateState(ctx context.Context, in *UpdateComputeCapabilityStateRequest, opts ...grpc.CallOption) (*UpdateComputeCapabilityResponse, error)
+	UpdateStatus(ctx context.Context, in *UpdateComputeCapabilityStatusRequest, opts ...grpc.CallOption) (*UpdateComputeCapabilityResponse, error)
 	// List ComputeCapabilitys that match the provided filters.
 	List(ctx context.Context, in *ListComputeCapabilityRequest, opts ...grpc.CallOption) (*ListComputeCapabilityResponse, error)
 	// Delete a ComputeCapability by its metadata.
@@ -85,10 +85,10 @@ func (c *computeCapabilitiesClient) GetByName(ctx context.Context, in *GetComput
 	return out, nil
 }
 
-func (c *computeCapabilitiesClient) UpdateState(ctx context.Context, in *UpdateComputeCapabilityStateRequest, opts ...grpc.CallOption) (*UpdateComputeCapabilityResponse, error) {
+func (c *computeCapabilitiesClient) UpdateStatus(ctx context.Context, in *UpdateComputeCapabilityStatusRequest, opts ...grpc.CallOption) (*UpdateComputeCapabilityResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateComputeCapabilityResponse)
-	err := c.cc.Invoke(ctx, ComputeCapabilities_UpdateState_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ComputeCapabilities_UpdateStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ type ComputeCapabilitiesServer interface {
 	// Get a ComputeCapability by its name.
 	GetByName(context.Context, *GetComputeCapabilityByNameRequest) (*GetComputeCapabilityResponse, error)
 	// Update the state of an existing ComputeCapability.
-	UpdateState(context.Context, *UpdateComputeCapabilityStateRequest) (*UpdateComputeCapabilityResponse, error)
+	UpdateStatus(context.Context, *UpdateComputeCapabilityStatusRequest) (*UpdateComputeCapabilityResponse, error)
 	// List ComputeCapabilitys that match the provided filters.
 	List(context.Context, *ListComputeCapabilityRequest) (*ListComputeCapabilityResponse, error)
 	// Delete a ComputeCapability by its metadata.
@@ -152,8 +152,8 @@ func (UnimplementedComputeCapabilitiesServer) GetByMetadata(context.Context, *Ge
 func (UnimplementedComputeCapabilitiesServer) GetByName(context.Context, *GetComputeCapabilityByNameRequest) (*GetComputeCapabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
 }
-func (UnimplementedComputeCapabilitiesServer) UpdateState(context.Context, *UpdateComputeCapabilityStateRequest) (*UpdateComputeCapabilityResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateState not implemented")
+func (UnimplementedComputeCapabilitiesServer) UpdateStatus(context.Context, *UpdateComputeCapabilityStatusRequest) (*UpdateComputeCapabilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedComputeCapabilitiesServer) List(context.Context, *ListComputeCapabilityRequest) (*ListComputeCapabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -236,20 +236,20 @@ func _ComputeCapabilities_GetByName_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ComputeCapabilities_UpdateState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateComputeCapabilityStateRequest)
+func _ComputeCapabilities_UpdateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateComputeCapabilityStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ComputeCapabilitiesServer).UpdateState(ctx, in)
+		return srv.(ComputeCapabilitiesServer).UpdateStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ComputeCapabilities_UpdateState_FullMethodName,
+		FullMethod: ComputeCapabilities_UpdateStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeCapabilitiesServer).UpdateState(ctx, req.(*UpdateComputeCapabilityStateRequest))
+		return srv.(ComputeCapabilitiesServer).UpdateStatus(ctx, req.(*UpdateComputeCapabilityStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -310,8 +310,8 @@ var ComputeCapabilities_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ComputeCapabilities_GetByName_Handler,
 		},
 		{
-			MethodName: "UpdateState",
-			Handler:    _ComputeCapabilities_UpdateState_Handler,
+			MethodName: "UpdateStatus",
+			Handler:    _ComputeCapabilities_UpdateStatus_Handler,
 		},
 		{
 			MethodName: "List",

@@ -20,7 +20,7 @@ func NewNodeActivities(client mrdspb.NodesClient, registry worker.Registry) *Nod
 	registry.RegisterActivity(a.CreateNode)
 	registry.RegisterActivity(a.GetNodeByMetadata)
 	registry.RegisterActivity(a.GetNodeByName)
-	registry.RegisterActivity(a.UpdateNodeState)
+	registry.RegisterActivity(a.UpdateNodeStatus)
 	registry.RegisterActivity(a.ListNode)
 	registry.RegisterActivity(a.DeleteNode)
 	return a
@@ -71,11 +71,11 @@ func (c *NodeActivities) GetNodeByName(ctx context.Context, req *mrdspb.GetNodeB
 	return resp, nil
 }
 
-// UpdateNodeState updates the state of a Node.
-func (c *NodeActivities) UpdateNodeState(ctx context.Context, req *mrdspb.UpdateNodeStateRequest) (*mrdspb.UpdateNodeResponse, error) {
+// UpdateNodeStatus updates the state of a Node.
+func (c *NodeActivities) UpdateNodeStatus(ctx context.Context, req *mrdspb.UpdateNodeStatusRequest) (*mrdspb.UpdateNodeResponse, error) {
 	activity.GetLogger(ctx).Info("Updating Node state", "request", req)
 
-	resp, err := c.client.UpdateState(ctx, req)
+	resp, err := c.client.UpdateStatus(ctx, req)
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to update Node state", "error", err)
 		return nil, fmt.Errorf("failed to update Node state: %w", err)

@@ -20,7 +20,7 @@ func NewClusterActivities(client mrdspb.ClustersClient, registry worker.Registry
 	registry.RegisterActivity(a.CreateCluster)
 	registry.RegisterActivity(a.GetClusterByMetadata)
 	registry.RegisterActivity(a.GetClusterByName)
-	registry.RegisterActivity(a.UpdateClusterState)
+	registry.RegisterActivity(a.UpdateClusterStatus)
 	registry.RegisterActivity(a.ListCluster)
 	registry.RegisterActivity(a.DeleteCluster)
 	return a
@@ -72,10 +72,10 @@ func (c *ClusterActivities) GetClusterByName(ctx context.Context, req *mrdspb.Ge
 }
 
 // UpdateClusterState updates the state of a Cluster.
-func (c *ClusterActivities) UpdateClusterState(ctx context.Context, req *mrdspb.UpdateClusterStateRequest) (*mrdspb.UpdateClusterResponse, error) {
+func (c *ClusterActivities) UpdateClusterStatus(ctx context.Context, req *mrdspb.UpdateClusterStatusRequest) (*mrdspb.UpdateClusterResponse, error) {
 	activity.GetLogger(ctx).Info("Updating Cluster state", "request", req)
 
-	resp, err := c.client.UpdateState(ctx, req)
+	resp, err := c.client.UpdateStatus(ctx, req)
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to update Cluster state", "error", err)
 		return nil, fmt.Errorf("failed to update Cluster state: %w", err)

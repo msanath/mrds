@@ -44,7 +44,7 @@ func (d *DeploymentWorkflow) CreateDeploymentWorkflow(ctx workflow.Context) erro
 	}
 
 	var updateResponse mrdspb.UpdateClusterResponse
-	err = workflow.ExecuteActivity(ctx, d.activities.Cluster.UpdateClusterState, &mrdspb.UpdateClusterStateRequest{
+	err = workflow.ExecuteActivity(ctx, d.activities.Cluster.UpdateClusterStatus, &mrdspb.UpdateClusterStatusRequest{
 		Metadata: createResponse.Record.Metadata,
 		Status: &mrdspb.ClusterStatus{
 			State:   mrdspb.ClusterState_ClusterState_ACTIVE,

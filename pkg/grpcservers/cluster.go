@@ -86,7 +86,7 @@ func (s *ClusterService) GetByName(ctx context.Context, req *mrdspb.GetClusterBy
 }
 
 // UpdateState updates the state and message of an existing Cluster
-func (s *ClusterService) UpdateState(ctx context.Context, req *mrdspb.UpdateClusterStateRequest) (*mrdspb.UpdateClusterResponse, error) {
+func (s *ClusterService) UpdateStatus(ctx context.Context, req *mrdspb.UpdateClusterStatusRequest) (*mrdspb.UpdateClusterResponse, error) {
 	updateResponse, err := s.ledger.UpdateStatus(ctx, &cluster.UpdateStateRequest{
 		Metadata: core.Metadata{
 			ID:      req.Metadata.Id,

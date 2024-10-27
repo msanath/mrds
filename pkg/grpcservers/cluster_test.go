@@ -39,7 +39,7 @@ func TestClusterServer(t *testing.T) {
 	require.Equal(t, "test-Cluster", getByNameResp.Record.Name)
 
 	// update
-	updateResp, err := client.UpdateState(ctx, &mrdspb.UpdateClusterStateRequest{
+	updateResp, err := client.UpdateStatus(ctx, &mrdspb.UpdateClusterStatusRequest{
 		Metadata: resp.Record.Metadata,
 		Status: &mrdspb.ClusterStatus{
 			State:   mrdspb.ClusterState_ClusterState_ACTIVE,

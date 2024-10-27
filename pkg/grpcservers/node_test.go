@@ -50,7 +50,7 @@ func TestNodeServer(t *testing.T) {
 	require.Equal(t, "test-Node", getByNameResp.Record.Name)
 
 	// update
-	updateResp, err := client.UpdateState(ctx, &mrdspb.UpdateNodeStateRequest{
+	updateResp, err := client.UpdateStatus(ctx, &mrdspb.UpdateNodeStatusRequest{
 		Metadata: resp.Record.Metadata,
 		Status: &mrdspb.NodeStatus{
 			State:   mrdspb.NodeState_NodeState_ALLOCATING,

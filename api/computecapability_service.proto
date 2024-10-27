@@ -19,7 +19,7 @@ service ComputeCapabilities {
     rpc GetByName(GetComputeCapabilityByNameRequest) returns (GetComputeCapabilityResponse);
 
     // Update the state of an existing ComputeCapability.
-    rpc UpdateState(UpdateComputeCapabilityStateRequest) returns (UpdateComputeCapabilityResponse);
+    rpc UpdateStatus(UpdateComputeCapabilityStatusRequest) returns (UpdateComputeCapabilityResponse);
 
     // List ComputeCapabilitys that match the provided filters.
     rpc List(ListComputeCapabilityRequest) returns (ListComputeCapabilityResponse);
@@ -42,7 +42,7 @@ message CreateComputeCapabilityResponse {
 }
 
 // Request to update the state and message of a ComputeCapability.
-message UpdateComputeCapabilityStateRequest {
+message UpdateComputeCapabilityStatusRequest {
     // The metadata of the ComputeCapability to update.
     core.Metadata metadata = 1;
 

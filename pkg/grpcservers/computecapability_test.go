@@ -45,7 +45,7 @@ func TestComputeCapabilityServer(t *testing.T) {
 	require.Equal(t, "test-ComputeCapability", getByNameResp.Record.Name)
 
 	// update
-	updateResp, err := client.UpdateState(ctx, &mrdspb.UpdateComputeCapabilityStateRequest{
+	updateResp, err := client.UpdateStatus(ctx, &mrdspb.UpdateComputeCapabilityStatusRequest{
 		Metadata: resp.Record.Metadata,
 		Status: &mrdspb.ComputeCapabilityStatus{
 			State:   mrdspb.ComputeCapabilityState_ComputeCapabilityState_ACTIVE,

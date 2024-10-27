@@ -19,7 +19,7 @@ service Nodes {
     rpc GetByName(GetNodeByNameRequest) returns (GetNodeResponse);
 
     // Update the state of an existing Node.
-    rpc UpdateState(UpdateNodeStateRequest) returns (UpdateNodeResponse);
+    rpc UpdateStatus(UpdateNodeStatusRequest) returns (UpdateNodeResponse);
 
     // List Nodes that match the provided filters.
     rpc List(ListNodeRequest) returns (ListNodeResponse);
@@ -43,7 +43,7 @@ message CreateNodeResponse {
 }
 
 // Request to update the state and message of a Node.
-message UpdateNodeStateRequest {
+message UpdateNodeStatusRequest {
     // The metadata of the Node to update.
     core.Metadata metadata = 1;
 

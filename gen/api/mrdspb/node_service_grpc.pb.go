@@ -22,7 +22,7 @@ const (
 	Nodes_Create_FullMethodName        = "/proto.mrds.ledger.node.Nodes/Create"
 	Nodes_GetByMetadata_FullMethodName = "/proto.mrds.ledger.node.Nodes/GetByMetadata"
 	Nodes_GetByName_FullMethodName     = "/proto.mrds.ledger.node.Nodes/GetByName"
-	Nodes_UpdateState_FullMethodName   = "/proto.mrds.ledger.node.Nodes/UpdateState"
+	Nodes_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.node.Nodes/UpdateStatus"
 	Nodes_List_FullMethodName          = "/proto.mrds.ledger.node.Nodes/List"
 	Nodes_Delete_FullMethodName        = "/proto.mrds.ledger.node.Nodes/Delete"
 )
@@ -40,7 +40,7 @@ type NodesClient interface {
 	// Get a Node by its name.
 	GetByName(ctx context.Context, in *GetNodeByNameRequest, opts ...grpc.CallOption) (*GetNodeResponse, error)
 	// Update the state of an existing Node.
-	UpdateState(ctx context.Context, in *UpdateNodeStateRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	UpdateStatus(ctx context.Context, in *UpdateNodeStatusRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
 	// List Nodes that match the provided filters.
 	List(ctx context.Context, in *ListNodeRequest, opts ...grpc.CallOption) (*ListNodeResponse, error)
 	// Delete a Node by its metadata.
@@ -85,10 +85,10 @@ func (c *nodesClient) GetByName(ctx context.Context, in *GetNodeByNameRequest, o
 	return out, nil
 }
 
-func (c *nodesClient) UpdateState(ctx context.Context, in *UpdateNodeStateRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+func (c *nodesClient) UpdateStatus(ctx context.Context, in *UpdateNodeStatusRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateNodeResponse)
-	err := c.cc.Invoke(ctx, Nodes_UpdateState_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Nodes_UpdateStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ type NodesServer interface {
 	// Get a Node by its name.
 	GetByName(context.Context, *GetNodeByNameRequest) (*GetNodeResponse, error)
 	// Update the state of an existing Node.
-	UpdateState(context.Context, *UpdateNodeStateRequest) (*UpdateNodeResponse, error)
+	UpdateStatus(context.Context, *UpdateNodeStatusRequest) (*UpdateNodeResponse, error)
 	// List Nodes that match the provided filters.
 	List(context.Context, *ListNodeRequest) (*ListNodeResponse, error)
 	// Delete a Node by its metadata.
@@ -152,8 +152,8 @@ func (UnimplementedNodesServer) GetByMetadata(context.Context, *GetNodeByMetadat
 func (UnimplementedNodesServer) GetByName(context.Context, *GetNodeByNameRequest) (*GetNodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
 }
-func (UnimplementedNodesServer) UpdateState(context.Context, *UpdateNodeStateRequest) (*UpdateNodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateState not implemented")
+func (UnimplementedNodesServer) UpdateStatus(context.Context, *UpdateNodeStatusRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedNodesServer) List(context.Context, *ListNodeRequest) (*ListNodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -236,20 +236,20 @@ func _Nodes_GetByName_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Nodes_UpdateState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateNodeStateRequest)
+func _Nodes_UpdateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateNodeStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NodesServer).UpdateState(ctx, in)
+		return srv.(NodesServer).UpdateStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Nodes_UpdateState_FullMethodName,
+		FullMethod: Nodes_UpdateStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodesServer).UpdateState(ctx, req.(*UpdateNodeStateRequest))
+		return srv.(NodesServer).UpdateStatus(ctx, req.(*UpdateNodeStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -310,8 +310,8 @@ var Nodes_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Nodes_GetByName_Handler,
 		},
 		{
-			MethodName: "UpdateState",
-			Handler:    _Nodes_UpdateState_Handler,
+			MethodName: "UpdateStatus",
+			Handler:    _Nodes_UpdateStatus_Handler,
 		},
 		{
 			MethodName: "List",

@@ -19,7 +19,7 @@ service Clusters {
     rpc GetByName(GetClusterByNameRequest) returns (GetClusterResponse);
 
     // Update the state of an existing Cluster.
-    rpc UpdateState(UpdateClusterStateRequest) returns (UpdateClusterResponse);
+    rpc UpdateStatus(UpdateClusterStatusRequest) returns (UpdateClusterResponse);
 
     // List Clusters that match the provided filters.
     rpc List(ListClusterRequest) returns (ListClusterResponse);
@@ -40,7 +40,7 @@ message CreateClusterResponse {
 }
 
 // Request to update the state and message of a Cluster.
-message UpdateClusterStateRequest {
+message UpdateClusterStatusRequest {
     // The metadata of the Cluster to update.
     core.Metadata metadata = 1;
 

@@ -20,7 +20,7 @@ func NewComputeCapabilityActivities(client mrdspb.ComputeCapabilitiesClient, reg
 	registry.RegisterActivity(a.CreateComputeCapability)
 	registry.RegisterActivity(a.GetComputeCapabilityByMetadata)
 	registry.RegisterActivity(a.GetComputeCapabilityByName)
-	registry.RegisterActivity(a.UpdateComputeCapabilityState)
+	registry.RegisterActivity(a.UpdateComputeCapabilityStatus)
 	registry.RegisterActivity(a.ListComputeCapability)
 	registry.RegisterActivity(a.DeleteComputeCapability)
 	return a
@@ -72,10 +72,10 @@ func (c *ComputeCapabilityActivities) GetComputeCapabilityByName(ctx context.Con
 }
 
 // UpdateComputeCapabilityState updates the state of a ComputeCapability.
-func (c *ComputeCapabilityActivities) UpdateComputeCapabilityState(ctx context.Context, req *mrdspb.UpdateComputeCapabilityStateRequest) (*mrdspb.UpdateComputeCapabilityResponse, error) {
+func (c *ComputeCapabilityActivities) UpdateComputeCapabilityStatus(ctx context.Context, req *mrdspb.UpdateComputeCapabilityStatusRequest) (*mrdspb.UpdateComputeCapabilityResponse, error) {
 	activity.GetLogger(ctx).Info("Updating ComputeCapability state", "request", req)
 
-	resp, err := c.client.UpdateState(ctx, req)
+	resp, err := c.client.UpdateStatus(ctx, req)
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to update ComputeCapability state", "error", err)
 		return nil, fmt.Errorf("failed to update ComputeCapability state: %w", err)

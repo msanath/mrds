@@ -22,7 +22,7 @@ const (
 	Clusters_Create_FullMethodName        = "/proto.mrds.ledger.cluster.Clusters/Create"
 	Clusters_GetByMetadata_FullMethodName = "/proto.mrds.ledger.cluster.Clusters/GetByMetadata"
 	Clusters_GetByName_FullMethodName     = "/proto.mrds.ledger.cluster.Clusters/GetByName"
-	Clusters_UpdateState_FullMethodName   = "/proto.mrds.ledger.cluster.Clusters/UpdateState"
+	Clusters_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.cluster.Clusters/UpdateStatus"
 	Clusters_List_FullMethodName          = "/proto.mrds.ledger.cluster.Clusters/List"
 	Clusters_Delete_FullMethodName        = "/proto.mrds.ledger.cluster.Clusters/Delete"
 )
@@ -40,7 +40,7 @@ type ClustersClient interface {
 	// Get a Cluster by its name.
 	GetByName(ctx context.Context, in *GetClusterByNameRequest, opts ...grpc.CallOption) (*GetClusterResponse, error)
 	// Update the state of an existing Cluster.
-	UpdateState(ctx context.Context, in *UpdateClusterStateRequest, opts ...grpc.CallOption) (*UpdateClusterResponse, error)
+	UpdateStatus(ctx context.Context, in *UpdateClusterStatusRequest, opts ...grpc.CallOption) (*UpdateClusterResponse, error)
 	// List Clusters that match the provided filters.
 	List(ctx context.Context, in *ListClusterRequest, opts ...grpc.CallOption) (*ListClusterResponse, error)
 	// Delete a Cluster by its metadata.
@@ -85,10 +85,10 @@ func (c *clustersClient) GetByName(ctx context.Context, in *GetClusterByNameRequ
 	return out, nil
 }
 
-func (c *clustersClient) UpdateState(ctx context.Context, in *UpdateClusterStateRequest, opts ...grpc.CallOption) (*UpdateClusterResponse, error) {
+func (c *clustersClient) UpdateStatus(ctx context.Context, in *UpdateClusterStatusRequest, opts ...grpc.CallOption) (*UpdateClusterResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateClusterResponse)
-	err := c.cc.Invoke(ctx, Clusters_UpdateState_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Clusters_UpdateStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ type ClustersServer interface {
 	// Get a Cluster by its name.
 	GetByName(context.Context, *GetClusterByNameRequest) (*GetClusterResponse, error)
 	// Update the state of an existing Cluster.
-	UpdateState(context.Context, *UpdateClusterStateRequest) (*UpdateClusterResponse, error)
+	UpdateStatus(context.Context, *UpdateClusterStatusRequest) (*UpdateClusterResponse, error)
 	// List Clusters that match the provided filters.
 	List(context.Context, *ListClusterRequest) (*ListClusterResponse, error)
 	// Delete a Cluster by its metadata.
@@ -152,8 +152,8 @@ func (UnimplementedClustersServer) GetByMetadata(context.Context, *GetClusterByM
 func (UnimplementedClustersServer) GetByName(context.Context, *GetClusterByNameRequest) (*GetClusterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
 }
-func (UnimplementedClustersServer) UpdateState(context.Context, *UpdateClusterStateRequest) (*UpdateClusterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateState not implemented")
+func (UnimplementedClustersServer) UpdateStatus(context.Context, *UpdateClusterStatusRequest) (*UpdateClusterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedClustersServer) List(context.Context, *ListClusterRequest) (*ListClusterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -236,20 +236,20 @@ func _Clusters_GetByName_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Clusters_UpdateState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateClusterStateRequest)
+func _Clusters_UpdateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateClusterStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClustersServer).UpdateState(ctx, in)
+		return srv.(ClustersServer).UpdateStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Clusters_UpdateState_FullMethodName,
+		FullMethod: Clusters_UpdateStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClustersServer).UpdateState(ctx, req.(*UpdateClusterStateRequest))
+		return srv.(ClustersServer).UpdateStatus(ctx, req.(*UpdateClusterStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -310,8 +310,8 @@ var Clusters_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Clusters_GetByName_Handler,
 		},
 		{
-			MethodName: "UpdateState",
-			Handler:    _Clusters_UpdateState_Handler,
+			MethodName: "UpdateStatus",
+			Handler:    _Clusters_UpdateStatus_Handler,
 		},
 		{
 			MethodName: "List",
