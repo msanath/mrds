@@ -8,9 +8,7 @@ import (
 	"github.com/msanath/mrds/internal/ledger/core"
 	"github.com/msanath/mrds/internal/ledger/deployment"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
-	"github.com/msanath/mrds/internal/sqlstorage"
-
-	"github.com/msanath/gondolf/pkg/simplesql/test"
+	"github.com/msanath/mrds/internal/sqlstorage/test"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -19,11 +17,7 @@ import (
 const deploymentidPrefix = "deployment"
 
 func TestDeploymentRecordLifecycle(t *testing.T) {
-	db, err := test.NewTestSQLiteDB()
-	require.NoError(t, err)
-
-	storage, err := sqlstorage.NewSQLStorage(db, true)
-	require.NoError(t, err)
+	storage := test.TestSQLStorage(t)
 
 	testRecord := deployment.DeploymentRecord{
 		Metadata: core.Metadata{
@@ -38,10 +32,6 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 	}
 	repo := storage.Deployment
 
-	testDeploymentCRUD(t, repo, testRecord)
-}
-
-func testDeploymentCRUD(t *testing.T, repo deployment.Repository, testRecord deployment.DeploymentRecord) {
 	ctx := context.Background()
 	var err error
 

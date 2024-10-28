@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/msanath/mrds/internal/ledger/core"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/ledger/node"
-	"github.com/msanath/mrds/internal/sqlstorage"
-
-	"github.com/msanath/gondolf/pkg/simplesql/test"
+	"github.com/msanath/mrds/internal/sqlstorage/test"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -19,11 +18,7 @@ import (
 const nodeidPrefix = "node"
 
 func TestNodeRecordLifecycle(t *testing.T) {
-	db, err := test.NewTestSQLiteDB()
-	require.NoError(t, err)
-
-	storage, err := sqlstorage.NewSQLStorage(db, true)
-	require.NoError(t, err)
+	storage := test.TestSQLStorage(t)
 
 	testRecord := node.NodeRecord{
 		Metadata: core.Metadata{
@@ -51,6 +46,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	}
 	repo := storage.Node
 	ctx := context.Background()
+	var err error
 
 	t.Run("Insert Success", func(t *testing.T) {
 		err = repo.Insert(ctx, testRecord)
@@ -104,6 +100,54 @@ func TestNodeRecordLifecycle(t *testing.T) {
 		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
 		require.NoError(t, err)
 		require.Equal(t, status, updatedRecord.Status)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Add disruption", func(t *testing.T) {
+		disruption := node.NodeDisruption{
+			ID:        "disruption-1",
+			StartTime: time.Now().Truncate(time.Second),
+			EvictNode: true,
+			Status: node.NodeDisruptionStatus{
+				State:   node.DisruptionStateScheduled,
+				Message: "Scheduled",
+			},
+		}
+
+		err = repo.InsertDisruption(ctx, testRecord.Metadata, disruption)
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Disruptions, 1)
+		require.Equal(t, disruption, updatedRecord.Disruptions[0])
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Update disruption", func(t *testing.T) {
+		err := repo.UpdateDisruptionStatus(ctx, testRecord.Metadata, "disruption-1", node.NodeDisruptionStatus{
+			State:   node.DisruptionStateApproved,
+			Message: "Approved",
+		})
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Disruptions, 1)
+		require.Equal(t, node.DisruptionStateApproved, updatedRecord.Disruptions[0].Status.State)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Delete disruption", func(t *testing.T) {
+		err := repo.DeleteDisruption(ctx, testRecord.Metadata, "disruption-1")
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Disruptions, 0)
 		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
 		testRecord = updatedRecord
 	})

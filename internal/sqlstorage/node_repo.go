@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"time"
 
 	"github.com/msanath/gondolf/pkg/simplesql"
 	"github.com/msanath/mrds/internal/ledger/core"
@@ -12,28 +13,29 @@ import (
 // nodeStorage is a concrete implementation of NodeRepository using sqlx
 type nodeStorage struct {
 	simplesql.Database
-	nodeTable *tables.NodeTable
+	nodeTable           *tables.NodeTable
+	nodeDisruptionTable *tables.NodeDisruptionTable
 }
 
-func nodeModelToRow(model node.NodeRecord) tables.NodeRow {
+func nodeRecordToRow(record node.NodeRecord) tables.NodeRow {
 	return tables.NodeRow{
-		ID:                   model.Metadata.ID,
-		Version:              model.Metadata.Version,
-		Name:                 model.Name,
-		State:                model.Status.State.ToString(),
-		Message:              model.Status.Message,
-		UpdateDomain:         model.UpdateDomain,
-		ClusterID:            model.ClusterID,
-		TotalCores:           model.TotalResources.Cores,
-		TotalMemory:          model.TotalResources.Memory,
-		SystemReservedCores:  model.SystemReservedResources.Cores,
-		SystemReservedMemory: model.SystemReservedResources.Memory,
-		RemainingCores:       model.RemainingResources.Cores,
-		RemainingMemory:      model.RemainingResources.Memory,
+		ID:                   record.Metadata.ID,
+		Version:              record.Metadata.Version,
+		Name:                 record.Name,
+		State:                record.Status.State.ToString(),
+		Message:              record.Status.Message,
+		UpdateDomain:         record.UpdateDomain,
+		ClusterID:            record.ClusterID,
+		TotalCores:           record.TotalResources.Cores,
+		TotalMemory:          record.TotalResources.Memory,
+		SystemReservedCores:  record.SystemReservedResources.Cores,
+		SystemReservedMemory: record.SystemReservedResources.Memory,
+		RemainingCores:       record.RemainingResources.Cores,
+		RemainingMemory:      record.RemainingResources.Memory,
 	}
 }
 
-func nodeRowToModel(row tables.NodeRow) node.NodeRecord {
+func nodeRowToRecord(row tables.NodeRow) node.NodeRecord {
 	return node.NodeRecord{
 		Metadata: core.Metadata{
 			ID:      row.ID,
@@ -61,17 +63,41 @@ func nodeRowToModel(row tables.NodeRow) node.NodeRecord {
 	}
 }
 
+func nodeDisruptionRecordToRow(nodeID string, record node.NodeDisruption) tables.NodeDisruptionRow {
+	return tables.NodeDisruptionRow{
+		ID:        record.ID,
+		NodeID:    nodeID,
+		StartTime: uint64(record.StartTime.Unix()),
+		EvictNode: record.EvictNode,
+		State:     string(record.Status.State),
+		Message:   record.Status.Message,
+	}
+}
+
+func nodeDisruptionRowToRecord(row tables.NodeDisruptionRow) node.NodeDisruption {
+	return node.NodeDisruption{
+		ID: row.ID,
+		Status: node.NodeDisruptionStatus{
+			State:   node.DisruptionState(row.State),
+			Message: row.Message,
+		},
+		StartTime: time.Unix(int64(row.StartTime), 0), // Convert from uint64 to time.Time
+		EvictNode: row.EvictNode,
+	}
+}
+
 // newNodeStorage creates a new storage instance satisfying the NodeRepository interface
 func newNodeStorage(db simplesql.Database) node.Repository {
 	return &nodeStorage{
-		Database:  db,
-		nodeTable: tables.NewNodeTable(db),
+		Database:            db,
+		nodeTable:           tables.NewNodeTable(db),
+		nodeDisruptionTable: tables.NewNodeDisruptionTable(db),
 	}
 }
 
 func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error {
 	execer := s.DB
-	err := s.nodeTable.Insert(ctx, execer, nodeModelToRow(record))
+	err := s.nodeTable.Insert(ctx, execer, nodeRecordToRow(record))
 	if err != nil {
 		return errHandler(err)
 	}
@@ -79,19 +105,50 @@ func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error 
 }
 
 func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (node.NodeRecord, error) {
-	row, err := s.nodeTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	nodeRow, err := s.nodeTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
-	return nodeRowToModel(row), nil
+
+	// Get the corresponding disruptionRows
+	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
+		NodeIDIn: []string{metadata.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	var disruptionRecords []node.NodeDisruption
+	for _, disruption := range disruptionRows {
+		disruptionRecords = append(disruptionRecords, nodeDisruptionRowToRecord(disruption))
+	}
+
+	nodeRecord := nodeRowToRecord(nodeRow)
+	nodeRecord.Disruptions = disruptionRecords
+
+	return nodeRecord, nil
 }
 
 func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.NodeRecord, error) {
-	row, err := s.nodeTable.GetByName(ctx, nodeName)
+	nodeRow, err := s.nodeTable.GetByName(ctx, nodeName)
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
-	return nodeRowToModel(row), nil
+
+	// Get the corresponding disruptionRows
+	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
+		NodeIDIn: []string{nodeRow.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	var disruptionRecords []node.NodeDisruption
+	for _, disruption := range disruptionRows {
+		disruptionRecords = append(disruptionRecords, nodeDisruptionRowToRecord(disruption))
+	}
+
+	nodeRecord := nodeRowToRecord(nodeRow)
+	nodeRecord.Disruptions = disruptionRecords
+	return nodeRecord, nil
 }
 
 func (s *nodeStorage) UpdateState(ctx context.Context, metadata core.Metadata, status node.NodeStatus) error {
@@ -148,10 +205,116 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 		return nil, errs
 	}
 
+	// Get all the IDs of the nodes
+	var nodeIDs []string
+	for _, row := range rows {
+		nodeIDs = append(nodeIDs, row.ID)
+	}
+
+	// Get the corresponding disruptionRows
+	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
+		NodeIDIn: nodeIDs,
+	})
+	if err != nil {
+		return nil, errHandler(err)
+	}
+
+	// Create a map of nodeID to list of disruptions
+	disruptionMap := make(map[string][]node.NodeDisruption)
+	for _, disruption := range disruptionRows {
+		disruptionMap[disruption.NodeID] = append(disruptionMap[disruption.NodeID], nodeDisruptionRowToRecord(disruption))
+	}
+
 	var records []node.NodeRecord
 	for _, row := range rows {
-		records = append(records, nodeRowToModel(row))
+		record := nodeRowToRecord(row)
+		record.Disruptions = disruptionMap[row.ID]
+		records = append(records, record)
 	}
 
 	return records, nil
+}
+
+func (s *nodeStorage) InsertDisruption(ctx context.Context, nodeMetadata core.Metadata, record node.NodeDisruption) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+	err = s.nodeDisruptionTable.Insert(ctx, execer, nodeDisruptionRecordToRow(nodeMetadata.ID, record))
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the node record to bump the version.
+	err = s.nodeTable.Update(ctx, execer, nodeMetadata.ID, nodeMetadata.Version, tables.NodeUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
+}
+
+func (s *nodeStorage) DeleteDisruption(ctx context.Context, nodeMetadata core.Metadata, disruptionID string) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+	err = s.nodeDisruptionTable.Delete(ctx, execer, nodeMetadata.ID, disruptionID)
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the node record to bump the version.
+	err = s.nodeTable.Update(ctx, execer, nodeMetadata.ID, nodeMetadata.Version, tables.NodeUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
+}
+
+func (s *nodeStorage) UpdateDisruptionStatus(ctx context.Context, nodeMetadata core.Metadata, disruptionID string, status node.NodeDisruptionStatus) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+	state := string(status.State)
+	message := status.Message
+	updateFields := tables.NodeDisruptionTableUpdateFields{
+		State:   &state,
+		Message: &message,
+	}
+	err = s.nodeDisruptionTable.Update(ctx, execer, nodeMetadata.ID, disruptionID, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the node record to bump the version.
+	err = s.nodeTable.Update(ctx, execer, nodeMetadata.ID, nodeMetadata.Version, tables.NodeUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }

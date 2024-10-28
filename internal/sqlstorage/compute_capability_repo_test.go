@@ -8,9 +8,7 @@ import (
 	"github.com/msanath/mrds/internal/ledger/computecapability"
 	"github.com/msanath/mrds/internal/ledger/core"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
-	"github.com/msanath/mrds/internal/sqlstorage"
-
-	"github.com/msanath/gondolf/pkg/simplesql/test"
+	"github.com/msanath/mrds/internal/sqlstorage/test"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -19,11 +17,7 @@ import (
 const computeCapabilityidPrefix = "computecapability"
 
 func TestComputeCapabilityRecordLifecycle(t *testing.T) {
-	db, err := test.NewTestSQLiteDB()
-	require.NoError(t, err)
-
-	storage, err := sqlstorage.NewSQLStorage(db, true)
-	require.NoError(t, err)
+	storage := test.TestSQLStorage(t)
 
 	testRecord := computecapability.ComputeCapabilityRecord{
 		Metadata: core.Metadata{
@@ -41,6 +35,7 @@ func TestComputeCapabilityRecordLifecycle(t *testing.T) {
 	repo := storage.ComputeCapability
 
 	ctx := context.Background()
+	var err error
 
 	t.Run("Insert Success", func(t *testing.T) {
 		err = repo.Insert(ctx, testRecord)

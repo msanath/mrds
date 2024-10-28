@@ -23,6 +23,10 @@ type Repository interface {
 	UpdateState(context.Context, core.Metadata, NodeStatus) error
 	Delete(context.Context, core.Metadata) error
 	List(context.Context, NodeListFilters) ([]NodeRecord, error)
+
+	InsertDisruption(context.Context, core.Metadata, NodeDisruption) error
+	DeleteDisruption(ctx context.Context, metadata core.Metadata, disruptionID string) error
+	UpdateDisruptionStatus(ctx context.Context, metadata core.Metadata, disruptionID string, status NodeDisruptionStatus) error
 }
 
 // NewLedger creates a new Ledger instance.
@@ -241,4 +245,106 @@ func (l *ledger) List(ctx context.Context, req *ListRequest) (*ListResponse, err
 
 func (l *ledger) Delete(ctx context.Context, req *DeleteRequest) error {
 	return l.repo.Delete(ctx, req.Metadata)
+}
+
+// AddDisruption adds a disruption to a Node.
+func (l *ledger) AddDisruption(ctx context.Context, req *AddDisruptionRequest) (*UpdateResponse, error) {
+	// validate the request
+	if req.Metadata.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"ID missing. ID is required to add a disruption",
+		)
+	}
+	if req.Disruption.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption ID is required to add a disruption",
+		)
+	}
+
+	err := l.repo.InsertDisruption(ctx, req.Metadata, req.Disruption)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
+		ID:      req.Metadata.ID,
+		Version: req.Metadata.Version + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
+}
+
+// UpdateDisruptionStatus updates the status of a disruption on a Node.
+func (l *ledger) UpdateDisruptionStatus(ctx context.Context, req *UpdateDisruptionStatusRequest) (*UpdateResponse, error) {
+	// validate the request
+	if req.Metadata.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"ID missing. ID is required to update disruption status",
+		)
+	}
+	if req.DisruptionID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption ID is required to update disruption status",
+		)
+	}
+
+	err := l.repo.UpdateDisruptionStatus(ctx, req.Metadata, req.DisruptionID, req.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
+		ID:      req.Metadata.ID,
+		Version: req.Metadata.Version + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
+}
+
+// RemoveDisruption removes a disruption from a Node.
+func (l *ledger) RemoveDisruption(ctx context.Context, req *RemoveDisruptionRequest) (*UpdateResponse, error) {
+	// validate the request
+	if req.Metadata.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"ID missing. ID is required to remove a disruption",
+		)
+	}
+	if req.DisruptionID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption ID is required to remove a disruption",
+		)
+	}
+
+	err := l.repo.DeleteDisruption(ctx, req.Metadata, req.DisruptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
+		ID:      req.Metadata.ID,
+		Version: req.Metadata.Version + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
 }

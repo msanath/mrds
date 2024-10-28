@@ -12,9 +12,11 @@ import (
 )
 
 func TestSQLStorage(t *testing.T) *sqlstorage.SQLStorage {
+	// db, err := simplesqltest.NewTestMySQLDB()
 	db, err := simplesqltest.NewTestSQLiteDB()
 	require.NoError(t, err)
-	storage, err := sqlstorage.NewSQLStorage(db, false)
+	// storage, err := sqlstorage.NewSQLStorage(db, false)
+	storage, err := sqlstorage.NewSQLStorage(db, true)
 	require.NoError(t, err)
 	return storage
 }

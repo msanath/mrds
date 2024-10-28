@@ -18,6 +18,8 @@ type NodeRecord struct {
 	TotalResources          Resources // TotalResources is the total resources available on the Node.
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
 	RemainingResources      Resources // RemainingResources is the resources available for application use.
+
+	Disruptions []NodeDisruption // Disruptions is a list of disruptions that are scheduled or approved for the Node.
 }
 
 type Resources struct {
@@ -65,10 +67,10 @@ type NodeDisruption struct {
 	ID        string
 	EvictNode bool
 	StartTime time.Time
-	Status    DisruptionStatus
+	Status    NodeDisruptionStatus
 }
 
-type DisruptionStatus struct {
+type NodeDisruptionStatus struct {
 	State   DisruptionState
 	Message string
 }
@@ -96,6 +98,10 @@ type Ledger interface {
 	List(context.Context, *ListRequest) (*ListResponse, error)
 	// Delete deletes a Node.
 	Delete(context.Context, *DeleteRequest) error
+
+	AddDisruption(context.Context, *AddDisruptionRequest) (*UpdateResponse, error)
+	UpdateDisruptionStatus(context.Context, *UpdateDisruptionStatusRequest) (*UpdateResponse, error)
+	RemoveDisruption(context.Context, *RemoveDisruptionRequest) (*UpdateResponse, error)
 }
 
 // CreateRequest represents the Node creation request.
@@ -161,4 +167,20 @@ type ListResponse struct {
 
 type DeleteRequest struct {
 	Metadata core.Metadata
+}
+
+type AddDisruptionRequest struct {
+	Metadata   core.Metadata
+	Disruption NodeDisruption
+}
+
+type UpdateDisruptionStatusRequest struct {
+	Metadata     core.Metadata
+	DisruptionID string
+	Status       NodeDisruptionStatus
+}
+
+type RemoveDisruptionRequest struct {
+	Metadata     core.Metadata
+	DisruptionID string
 }
