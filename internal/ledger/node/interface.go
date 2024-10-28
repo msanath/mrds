@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"time"
 
 	"github.com/msanath/mrds/internal/ledger/core"
 )
@@ -59,6 +60,27 @@ type NodeStatus struct {
 	State   NodeState // State is the discrete condition of the resource.
 	Message string    // Message is a human-readable description of the resource's state.
 }
+
+type NodeDisruption struct {
+	ID        string
+	EvictNode bool
+	StartTime time.Time
+	Status    DisruptionStatus
+}
+
+type DisruptionStatus struct {
+	State   DisruptionState
+	Message string
+}
+
+type DisruptionState string
+
+const (
+	DisruptionStateUnknown   DisruptionState = "DisruptionState_UNKNOWN"
+	DisruptionStateScheduled DisruptionState = "DisruptionState_SCHEDULED"
+	DisruptionStateApproved  DisruptionState = "DisruptionState_APPROVED"
+	DisruptionStateCompleted DisruptionState = "DisruptionState_COMPLETED"
+)
 
 // Ledger provides the methods for managing Node records.
 type Ledger interface {

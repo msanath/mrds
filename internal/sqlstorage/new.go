@@ -1,8 +1,8 @@
 package sqlstorage
 
 import (
-	"github.com/msanath/mrds/internal/ledger/cluster"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
+	"github.com/msanath/mrds/internal/sqlstorage/tables"
 
 	"github.com/msanath/gondolf/pkg/simplesql"
 
@@ -10,17 +10,20 @@ import (
 	"github.com/msanath/mrds/internal/ledger/deployment"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
 	"github.com/msanath/mrds/internal/ledger/node"
+
+	"github.com/msanath/mrds/internal/ledger/cluster"
+
 	// ++ledgerbuilder:Imports
 
 	"github.com/jmoiron/sqlx"
 )
 
 type SQLStorage struct {
-	Cluster           cluster.Repository
 	ComputeCapability computecapability.Repository
 	Node              node.Repository
 	Deployment        deployment.Repository
 	MetaInstance      metainstance.Repository
+	Cluster           cluster.Repository
 	// ++ledgerbuilder:RepositoryInterface
 }
 
@@ -28,14 +31,6 @@ func NewSQLStorage(
 	db *sqlx.DB,
 	is_sqlite bool,
 ) (*SQLStorage, error) {
-	var schemaMigrations = []simplesql.Migration{}
-
-	schemaMigrations = append(schemaMigrations, clusterTableMigrations...)
-	schemaMigrations = append(schemaMigrations, computeCapabilityTableMigrations...)
-	schemaMigrations = append(schemaMigrations, nodeTableMigrations...)
-	schemaMigrations = append(schemaMigrations, deploymentTableMigrations...)
-	schemaMigrations = append(schemaMigrations, metaInstanceTableMigrations...)
-	// ++ledgerbuilder:Migrations
 
 	var errHandler simplesql.ErrHandler
 	if is_sqlite {
@@ -47,7 +42,7 @@ func NewSQLStorage(
 	simpleDB := simplesql.NewDatabase(
 		db, simplesql.WithErrHandler(errHandler),
 	)
-	err := simpleDB.ApplyMigrations(schemaMigrations)
+	err := tables.Initialize(simpleDB)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const idPrefix = "cluster"
+const clusteridPrefix = "cluster"
 
 func TestClusterRecordLifecycle(t *testing.T) {
 	db, err := test.NewTestSQLiteDB()
@@ -27,10 +27,10 @@ func TestClusterRecordLifecycle(t *testing.T) {
 
 	testRecord := cluster.ClusterRecord{
 		Metadata: core.Metadata{
-			ID:      fmt.Sprintf("%s1", idPrefix),
+			ID:      fmt.Sprintf("%s1", clusteridPrefix),
 			Version: 1,
 		},
-		Name: fmt.Sprintf("%s1", idPrefix),
+		Name: fmt.Sprintf("%s1", clusteridPrefix),
 		Status: cluster.ClusterStatus{
 			State:   cluster.ClusterStateActive,
 			Message: "",
@@ -38,10 +38,10 @@ func TestClusterRecordLifecycle(t *testing.T) {
 	}
 	repo := storage.Cluster
 
-	testCRUD(t, repo, testRecord)
+	testClusterCRUD(t, repo, testRecord)
 }
 
-func testCRUD(t *testing.T, repo cluster.Repository, testRecord cluster.ClusterRecord) {
+func testClusterCRUD(t *testing.T, repo cluster.Repository, testRecord cluster.ClusterRecord) {
 	ctx := context.Background()
 	var err error
 
@@ -113,15 +113,15 @@ func testCRUD(t *testing.T, repo cluster.Repository, testRecord cluster.ClusterR
 		// Create 10 records.
 		for i := range 10 {
 			newRecord := testRecord
-			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", idPrefix, i+1)
+			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", clusteridPrefix, i+1)
 			newRecord.Metadata.Version = 0
-			newRecord.Name = fmt.Sprintf("%s-%d", idPrefix, i+1)
+			newRecord.Name = fmt.Sprintf("%s-%d", clusteridPrefix, i+1)
 			newRecord.Status.State = cluster.ClusterStateActive
-			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", idPrefix, i+1)
+			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", clusteridPrefix, i+1)
 
 			if (i+1)%2 == 0 {
 				newRecord.Status.State = cluster.ClusterStateInActive
-				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", idPrefix, i+1)
+				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", clusteridPrefix, i+1)
 			}
 
 			err = repo.Insert(ctx, newRecord)
@@ -141,7 +141,7 @@ func testCRUD(t *testing.T, repo cluster.Repository, testRecord cluster.ClusterR
 		}
 		expectedIDs := []string{}
 		for i := range 10 {
-			expectedIDs = append(expectedIDs, fmt.Sprintf("%s-%d", idPrefix, i+1))
+			expectedIDs = append(expectedIDs, fmt.Sprintf("%s-%d", clusteridPrefix, i+1))
 
 		}
 		require.ElementsMatch(t, expectedIDs, receivedIDs)
