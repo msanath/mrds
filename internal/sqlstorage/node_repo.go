@@ -24,7 +24,7 @@ func nodeRecordToRow(record node.NodeRecord) tables.NodeRow {
 		ID:                   record.Metadata.ID,
 		Version:              record.Metadata.Version,
 		Name:                 record.Name,
-		State:                record.Status.State.ToString(),
+		State:                string(record.Status.State),
 		Message:              record.Status.Message,
 		UpdateDomain:         record.UpdateDomain,
 		ClusterID:            record.ClusterID,
@@ -45,7 +45,7 @@ func nodeRowToRecord(row tables.NodeRow) node.NodeRecord {
 		},
 		Name: row.Name,
 		Status: node.NodeStatus{
-			State:   node.NodeStateFromString(row.State),
+			State:   node.NodeState(row.State),
 			Message: row.Message,
 		},
 		UpdateDomain: row.UpdateDomain,
@@ -65,30 +65,34 @@ func nodeRowToRecord(row tables.NodeRow) node.NodeRecord {
 	}
 }
 
-func nodeDisruptionRecordToRow(nodeID string, record node.NodeDisruption) tables.NodeDisruptionRow {
+func nodeDisruptionRecordToRow(nodeID string, record node.Disruption) tables.NodeDisruptionRow {
+	startTime := uint64(0)
+	if !record.StartTime.IsZero() {
+		startTime = uint64(record.StartTime.Unix())
+	}
 	return tables.NodeDisruptionRow{
 		ID:        record.ID,
 		NodeID:    nodeID,
-		StartTime: uint64(record.StartTime.Unix()),
-		EvictNode: record.EvictNode,
+		StartTime: startTime,
+		EvictNode: record.ShouldEvict,
 		State:     string(record.Status.State),
 		Message:   record.Status.Message,
 	}
 }
 
-func nodeDisruptionRowToRecord(row tables.NodeDisruptionRow) node.NodeDisruption {
-	return node.NodeDisruption{
+func nodeDisruptionRowToRecord(row tables.NodeDisruptionRow) node.Disruption {
+	return node.Disruption{
 		ID: row.ID,
-		Status: node.NodeDisruptionStatus{
+		Status: node.DisruptionStatus{
 			State:   node.DisruptionState(row.State),
 			Message: row.Message,
 		},
-		StartTime: time.Unix(int64(row.StartTime), 0), // Convert from uint64 to time.Time
-		EvictNode: row.EvictNode,
+		StartTime:   time.Unix(int64(row.StartTime), 0), // Convert from uint64 to time.Time
+		ShouldEvict: row.EvictNode,
 	}
 }
 
-func nodeLocalVolumeRecordToRow(nodeID string, record node.NodeLocalVolume) tables.NodeLocalVolumeRow {
+func nodeLocalVolumeRecordToRow(nodeID string, record node.LocalVolume) tables.NodeLocalVolumeRow {
 	return tables.NodeLocalVolumeRow{
 		NodeID:          nodeID,
 		MountPath:       record.MountPath,
@@ -97,8 +101,8 @@ func nodeLocalVolumeRecordToRow(nodeID string, record node.NodeLocalVolume) tabl
 	}
 }
 
-func nodeLocalVolumeRowToRecord(row tables.NodeLocalVolumeRow) node.NodeLocalVolume {
-	return node.NodeLocalVolume{
+func nodeLocalVolumeRowToRecord(row tables.NodeLocalVolumeRow) node.LocalVolume {
+	return node.LocalVolume{
 		MountPath:       row.MountPath,
 		StorageClass:    row.StorageClass,
 		StorageCapacity: row.StorageCapacity,
@@ -247,7 +251,7 @@ func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.Node
 
 func (s *nodeStorage) UpdateState(ctx context.Context, metadata core.Metadata, status node.NodeStatus) error {
 	execer := s.DB
-	state := status.State.ToString()
+	state := string(status.State)
 	message := status.Message
 	updateFields := tables.NodeUpdateFields{
 		State:   &state,
@@ -288,10 +292,10 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 
 	// Extract node specific filters
 	for _, state := range filters.StateIn {
-		dbFilters.StateIn = append(dbFilters.StateIn, state.ToString())
+		dbFilters.StateIn = append(dbFilters.StateIn, string(state))
 	}
 	for _, state := range filters.StateNotIn {
-		dbFilters.StateNotIn = append(dbFilters.StateNotIn, state.ToString())
+		dbFilters.StateNotIn = append(dbFilters.StateNotIn, string(state))
 	}
 
 	rows, errs := s.nodeTable.List(ctx, dbFilters)
@@ -314,7 +318,7 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 	}
 
 	// Create a map of nodeID to list of disruptions
-	disruptionMap := make(map[string][]node.NodeDisruption)
+	disruptionMap := make(map[string][]node.Disruption)
 	for _, disruption := range disruptionRows {
 		disruptionMap[disruption.NodeID] = append(disruptionMap[disruption.NodeID], nodeDisruptionRowToRecord(disruption))
 	}
@@ -325,7 +329,7 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 	if err != nil {
 		return nil, errHandler(err)
 	}
-	volumeMap := make(map[string][]node.NodeLocalVolume)
+	volumeMap := make(map[string][]node.LocalVolume)
 	for _, volume := range volumeRows {
 		volumeMap[volume.NodeID] = append(volumeMap[volume.NodeID], nodeLocalVolumeRowToRecord(volume))
 	}
@@ -354,7 +358,7 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 	return records, nil
 }
 
-func (s *nodeStorage) InsertDisruption(ctx context.Context, nodeMetadata core.Metadata, record node.NodeDisruption) error {
+func (s *nodeStorage) InsertDisruption(ctx context.Context, nodeMetadata core.Metadata, record node.Disruption) error {
 	tx, err := s.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return errHandler(err)
@@ -406,7 +410,7 @@ func (s *nodeStorage) DeleteDisruption(ctx context.Context, nodeMetadata core.Me
 	return nil
 }
 
-func (s *nodeStorage) UpdateDisruptionStatus(ctx context.Context, nodeMetadata core.Metadata, disruptionID string, status node.NodeDisruptionStatus) error {
+func (s *nodeStorage) UpdateDisruptionStatus(ctx context.Context, nodeMetadata core.Metadata, disruptionID string, status node.DisruptionStatus) error {
 	tx, err := s.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return errHandler(err)

@@ -395,9 +395,9 @@ func TestDisruption(t *testing.T) {
 	t.Run("AddDisruption Success", func(t *testing.T) {
 		disruptionReq := &node.AddDisruptionRequest{
 			Metadata: createResp.Record.Metadata,
-			Disruption: node.NodeDisruption{
+			Disruption: node.Disruption{
 				StartTime: time.Now(),
-				Status: node.NodeDisruptionStatus{
+				Status: node.DisruptionStatus{
 					State:   node.DisruptionStateScheduled,
 					Message: "Disruption is scheduled",
 				},
@@ -419,7 +419,7 @@ func TestDisruption(t *testing.T) {
 		updateReq := &node.UpdateDisruptionStatusRequest{
 			Metadata:     updatedRecord.Metadata,
 			DisruptionID: "test-disruption",
-			Status: node.NodeDisruptionStatus{
+			Status: node.DisruptionStatus{
 				State:   node.DisruptionStateCompleted,
 				Message: "Disruption is completed",
 			},

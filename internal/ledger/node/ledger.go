@@ -24,9 +24,9 @@ type Repository interface {
 	Delete(context.Context, core.Metadata) error
 	List(context.Context, NodeListFilters) ([]NodeRecord, error)
 
-	InsertDisruption(context.Context, core.Metadata, NodeDisruption) error
+	InsertDisruption(context.Context, core.Metadata, Disruption) error
 	DeleteDisruption(ctx context.Context, metadata core.Metadata, disruptionID string) error
-	UpdateDisruptionStatus(ctx context.Context, metadata core.Metadata, disruptionID string, status NodeDisruptionStatus) error
+	UpdateDisruptionStatus(ctx context.Context, metadata core.Metadata, disruptionID string, status DisruptionStatus) error
 
 	InsertCapability(ctx context.Context, metadata core.Metadata, capabilityID string) error
 	DeleteCapability(ctx context.Context, metadata core.Metadata, capabilityID string) error
@@ -83,6 +83,7 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 			Memory: req.TotalResources.Memory - req.SystemReservedResources.Memory,
 		},
 		CapabilityIDs: req.CapabilityIDs,
+		LocalVolumes:  req.LocalVolumes,
 	}
 
 	err := l.repo.Insert(ctx, rec)

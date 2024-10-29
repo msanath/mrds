@@ -19,12 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Nodes_Create_FullMethodName        = "/proto.mrds.ledger.node.Nodes/Create"
-	Nodes_GetByMetadata_FullMethodName = "/proto.mrds.ledger.node.Nodes/GetByMetadata"
-	Nodes_GetByName_FullMethodName     = "/proto.mrds.ledger.node.Nodes/GetByName"
-	Nodes_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.node.Nodes/UpdateStatus"
-	Nodes_List_FullMethodName          = "/proto.mrds.ledger.node.Nodes/List"
-	Nodes_Delete_FullMethodName        = "/proto.mrds.ledger.node.Nodes/Delete"
+	Nodes_Create_FullMethodName                 = "/proto.mrds.ledger.node.Nodes/Create"
+	Nodes_GetByMetadata_FullMethodName          = "/proto.mrds.ledger.node.Nodes/GetByMetadata"
+	Nodes_GetByName_FullMethodName              = "/proto.mrds.ledger.node.Nodes/GetByName"
+	Nodes_UpdateStatus_FullMethodName           = "/proto.mrds.ledger.node.Nodes/UpdateStatus"
+	Nodes_List_FullMethodName                   = "/proto.mrds.ledger.node.Nodes/List"
+	Nodes_Delete_FullMethodName                 = "/proto.mrds.ledger.node.Nodes/Delete"
+	Nodes_AddDisruption_FullMethodName          = "/proto.mrds.ledger.node.Nodes/AddDisruption"
+	Nodes_UpdateDisruptionStatus_FullMethodName = "/proto.mrds.ledger.node.Nodes/UpdateDisruptionStatus"
+	Nodes_RemoveDisruption_FullMethodName       = "/proto.mrds.ledger.node.Nodes/RemoveDisruption"
+	Nodes_AddCapability_FullMethodName          = "/proto.mrds.ledger.node.Nodes/AddCapability"
+	Nodes_RemoveCapability_FullMethodName       = "/proto.mrds.ledger.node.Nodes/RemoveCapability"
 )
 
 // NodesClient is the client API for Nodes service.
@@ -45,6 +50,11 @@ type NodesClient interface {
 	List(ctx context.Context, in *ListNodeRequest, opts ...grpc.CallOption) (*ListNodeResponse, error)
 	// Delete a Node by its metadata.
 	Delete(ctx context.Context, in *DeleteNodeRequest, opts ...grpc.CallOption) (*DeleteNodeResponse, error)
+	AddDisruption(ctx context.Context, in *AddDisruptionRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	UpdateDisruptionStatus(ctx context.Context, in *UpdateDisruptionStatusRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	RemoveDisruption(ctx context.Context, in *RemoveDisruptionRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	AddCapability(ctx context.Context, in *AddCapabilityRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	RemoveCapability(ctx context.Context, in *RemoveCapabilityRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
 }
 
 type nodesClient struct {
@@ -115,6 +125,56 @@ func (c *nodesClient) Delete(ctx context.Context, in *DeleteNodeRequest, opts ..
 	return out, nil
 }
 
+func (c *nodesClient) AddDisruption(ctx context.Context, in *AddDisruptionRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, Nodes_AddDisruption_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nodesClient) UpdateDisruptionStatus(ctx context.Context, in *UpdateDisruptionStatusRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, Nodes_UpdateDisruptionStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nodesClient) RemoveDisruption(ctx context.Context, in *RemoveDisruptionRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, Nodes_RemoveDisruption_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nodesClient) AddCapability(ctx context.Context, in *AddCapabilityRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, Nodes_AddCapability_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nodesClient) RemoveCapability(ctx context.Context, in *RemoveCapabilityRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, Nodes_RemoveCapability_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NodesServer is the server API for Nodes service.
 // All implementations must embed UnimplementedNodesServer
 // for forward compatibility.
@@ -133,6 +193,11 @@ type NodesServer interface {
 	List(context.Context, *ListNodeRequest) (*ListNodeResponse, error)
 	// Delete a Node by its metadata.
 	Delete(context.Context, *DeleteNodeRequest) (*DeleteNodeResponse, error)
+	AddDisruption(context.Context, *AddDisruptionRequest) (*UpdateNodeResponse, error)
+	UpdateDisruptionStatus(context.Context, *UpdateDisruptionStatusRequest) (*UpdateNodeResponse, error)
+	RemoveDisruption(context.Context, *RemoveDisruptionRequest) (*UpdateNodeResponse, error)
+	AddCapability(context.Context, *AddCapabilityRequest) (*UpdateNodeResponse, error)
+	RemoveCapability(context.Context, *RemoveCapabilityRequest) (*UpdateNodeResponse, error)
 	mustEmbedUnimplementedNodesServer()
 }
 
@@ -160,6 +225,21 @@ func (UnimplementedNodesServer) List(context.Context, *ListNodeRequest) (*ListNo
 }
 func (UnimplementedNodesServer) Delete(context.Context, *DeleteNodeRequest) (*DeleteNodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedNodesServer) AddDisruption(context.Context, *AddDisruptionRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDisruption not implemented")
+}
+func (UnimplementedNodesServer) UpdateDisruptionStatus(context.Context, *UpdateDisruptionStatusRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDisruptionStatus not implemented")
+}
+func (UnimplementedNodesServer) RemoveDisruption(context.Context, *RemoveDisruptionRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveDisruption not implemented")
+}
+func (UnimplementedNodesServer) AddCapability(context.Context, *AddCapabilityRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddCapability not implemented")
+}
+func (UnimplementedNodesServer) RemoveCapability(context.Context, *RemoveCapabilityRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveCapability not implemented")
 }
 func (UnimplementedNodesServer) mustEmbedUnimplementedNodesServer() {}
 func (UnimplementedNodesServer) testEmbeddedByValue()               {}
@@ -290,6 +370,96 @@ func _Nodes_Delete_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Nodes_AddDisruption_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddDisruptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodesServer).AddDisruption(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Nodes_AddDisruption_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodesServer).AddDisruption(ctx, req.(*AddDisruptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Nodes_UpdateDisruptionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDisruptionStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodesServer).UpdateDisruptionStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Nodes_UpdateDisruptionStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodesServer).UpdateDisruptionStatus(ctx, req.(*UpdateDisruptionStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Nodes_RemoveDisruption_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveDisruptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodesServer).RemoveDisruption(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Nodes_RemoveDisruption_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodesServer).RemoveDisruption(ctx, req.(*RemoveDisruptionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Nodes_AddCapability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddCapabilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodesServer).AddCapability(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Nodes_AddCapability_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodesServer).AddCapability(ctx, req.(*AddCapabilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Nodes_RemoveCapability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveCapabilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodesServer).RemoveCapability(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Nodes_RemoveCapability_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodesServer).RemoveCapability(ctx, req.(*RemoveCapabilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Nodes_ServiceDesc is the grpc.ServiceDesc for Nodes service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -320,6 +490,26 @@ var Nodes_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _Nodes_Delete_Handler,
+		},
+		{
+			MethodName: "AddDisruption",
+			Handler:    _Nodes_AddDisruption_Handler,
+		},
+		{
+			MethodName: "UpdateDisruptionStatus",
+			Handler:    _Nodes_UpdateDisruptionStatus_Handler,
+		},
+		{
+			MethodName: "RemoveDisruption",
+			Handler:    _Nodes_RemoveDisruption_Handler,
+		},
+		{
+			MethodName: "AddCapability",
+			Handler:    _Nodes_AddCapability_Handler,
+		},
+		{
+			MethodName: "RemoveCapability",
+			Handler:    _Nodes_RemoveCapability_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

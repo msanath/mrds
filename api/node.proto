@@ -42,6 +42,26 @@ message Node {
 
     // UpdateDomain is the update domain of the Node.
     string update_domain = 8;
+
+    // LocalVolumes is the local volumes available on the Node.
+    repeated NodeLocalVolume local_volumes = 9;
+
+    // Disruptions is the list of disruptions scheduled for the Node.
+    repeated NodeDisruption disruptions = 10;
+
+    // Capabilities is the list of capabilities available on the Node.
+    repeated string capability_ids = 11;
+}
+
+message NodeLocalVolume {
+    // MountPath is the path where the volume is mounted on the Node.
+    string mount_path = 1;
+
+    // StorageClass is the storage class of the volume.
+    string storage_class = 2;
+
+    // Capacity is the capacity of the volume in GB.
+    uint32 storage_capacity = 3;
 }
 
 message Resources {
@@ -60,3 +80,33 @@ message NodeStatus {
     // Message is a human-readable description of the resource's state.
     string message = 2;
 }
+
+message NodeDisruption {
+    // ID is the ID of the disruption.
+    string id = 1;
+
+    // ShouldEvict is a flag to indicate if the Node should be evicted.
+    bool should_evict = 2;
+
+    // StartTime is the time when the disruption should start.
+    // google.protobuf.Timestamp start_time = 3;
+
+    DisruptionStatus status = 4;
+}
+
+// Enum to represent the NodeState
+enum DisruptionState {
+    DisruptionState_UNKNOWN = 0;
+    DisruptionState_SCHEDULED = 1;
+    DisruptionState_APPROVED = 2;
+    DisruptionState_COMPLETED = 3;
+}
+
+message DisruptionStatus {
+    // State is the state of the disruption.
+    DisruptionState state = 1;
+
+    // Message is a human-readable description of the disruption's state.
+    string message = 2;
+}
+

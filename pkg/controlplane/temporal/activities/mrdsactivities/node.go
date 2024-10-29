@@ -108,3 +108,63 @@ func (c *NodeActivities) DeleteNode(ctx context.Context, req *mrdspb.DeleteNodeR
 
 	return resp, nil
 }
+
+func (c *NodeActivities) AddDisruption(ctx context.Context, req *mrdspb.AddDisruptionRequest) (*mrdspb.UpdateNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Adding disruption to Node", "request", req)
+
+	resp, err := c.client.AddDisruption(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to add disruption to Node", "error", err)
+		return nil, fmt.Errorf("failed to add disruption to Node: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *NodeActivities) UpdateDisruptionStatus(ctx context.Context, req *mrdspb.UpdateDisruptionStatusRequest) (*mrdspb.UpdateNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Updating disruption status of Node", "request", req)
+
+	resp, err := c.client.UpdateDisruptionStatus(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update disruption status of Node", "error", err)
+		return nil, fmt.Errorf("failed to update disruption status of Node: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *NodeActivities) RemoveDisruption(ctx context.Context, req *mrdspb.RemoveDisruptionRequest) (*mrdspb.UpdateNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Removing disruption from Node", "request", req)
+
+	resp, err := c.client.RemoveDisruption(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to remove disruption from Node", "error", err)
+		return nil, fmt.Errorf("failed to remove disruption from Node: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *NodeActivities) AddCapability(ctx context.Context, req *mrdspb.AddCapabilityRequest) (*mrdspb.UpdateNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Adding capability to Node", "request", req)
+
+	resp, err := c.client.AddCapability(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to add capability to Node", "error", err)
+		return nil, fmt.Errorf("failed to add capability to Node: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *NodeActivities) RemoveCapability(ctx context.Context, req *mrdspb.RemoveCapabilityRequest) (*mrdspb.UpdateNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Removing capability from Node", "request", req)
+
+	resp, err := c.client.RemoveCapability(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to remove capability from Node", "error", err)
+		return nil, fmt.Errorf("failed to remove capability from Node: %w", err)
+	}
+
+	return resp, nil
+}

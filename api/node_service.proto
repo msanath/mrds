@@ -26,6 +26,13 @@ service Nodes {
 
     // Delete a Node by its metadata.
     rpc Delete(DeleteNodeRequest) returns (DeleteNodeResponse);
+
+    rpc AddDisruption(AddDisruptionRequest) returns (UpdateNodeResponse);
+    rpc UpdateDisruptionStatus(UpdateDisruptionStatusRequest) returns (UpdateNodeResponse);
+    rpc RemoveDisruption(RemoveDisruptionRequest) returns (UpdateNodeResponse);
+
+    rpc AddCapability(AddCapabilityRequest) returns (UpdateNodeResponse);
+    rpc RemoveCapability(RemoveCapabilityRequest) returns (UpdateNodeResponse);
 }
 
 // Request to create a new Node.
@@ -34,6 +41,8 @@ message CreateNodeRequest {
     string update_domain = 2;
     Resources total_resources = 3;
     Resources system_reserved_resources = 4;
+    repeated NodeLocalVolume local_volumes = 5;
+    repeated string capability_ids = 6;
 }
 
 // Response after creating a new Node.
@@ -133,3 +142,29 @@ message DeleteNodeRequest {
 
 // Response after deleting a Node.
 message DeleteNodeResponse {}
+
+message AddDisruptionRequest {
+    core.Metadata metadata = 1;
+    NodeDisruption disruption = 2;
+}
+
+message UpdateDisruptionStatusRequest {
+    core.Metadata metadata = 1;
+    string disruption_id = 2;
+    DisruptionStatus status = 3;
+}
+
+message RemoveDisruptionRequest {
+    core.Metadata metadata = 1;
+    string disruption_id = 2;
+}
+
+message AddCapabilityRequest {
+    core.Metadata metadata = 1;
+    string capability_id = 2;
+}
+
+message RemoveCapabilityRequest {
+    core.Metadata metadata = 1;
+    string capability_id = 2;
+}

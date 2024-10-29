@@ -19,9 +19,9 @@ type NodeRecord struct {
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
 	RemainingResources      Resources // RemainingResources is the resources available for application use.
 
-	LocalVolumes  []NodeLocalVolume // LocalVolumes is a list of local volumes attached to the Node.
-	CapabilityIDs []string          // Capabilities is a list of capabilities that the Node has.
-	Disruptions   []NodeDisruption  // Disruptions is a list of disruptions that are scheduled or approved for the Node.
+	LocalVolumes  []LocalVolume // LocalVolumes is a list of local volumes attached to the Node.
+	CapabilityIDs []string      // Capabilities is a list of capabilities that the Node has.
+	Disruptions   []Disruption  // Disruptions is a list of disruptions that are scheduled or approved for the Node.
 }
 
 type Resources struct {
@@ -41,44 +41,25 @@ const (
 	NodeStateSanitizing  NodeState = "NodeState_SANITIZING"
 )
 
-// ToString returns the string representation of the NodeState.
-func (s NodeState) ToString() string {
-	return string(s)
-}
-
-// FromString converts a string into a NodeState if valid, otherwise returns an error.
-func NodeStateFromString(s string) NodeState {
-	switch s {
-	case string(NodeStateUnallocated):
-		return NodeStateUnallocated
-	case string(NodeStateAllocated):
-		return NodeStateAllocated
-	case string(NodeStateEvicted):
-		return NodeStateEvicted
-	default:
-		return NodeState(s) // Unknown state. Return as is.
-	}
-}
-
 type NodeStatus struct {
 	State   NodeState // State is the discrete condition of the resource.
 	Message string    // Message is a human-readable description of the resource's state.
 }
 
-type NodeLocalVolume struct {
+type LocalVolume struct {
 	MountPath       string
 	StorageClass    string
 	StorageCapacity uint32
 }
 
-type NodeDisruption struct {
-	ID        string
-	EvictNode bool
-	StartTime time.Time
-	Status    NodeDisruptionStatus
+type Disruption struct {
+	ID          string
+	ShouldEvict bool
+	StartTime   time.Time
+	Status      DisruptionStatus
 }
 
-type NodeDisruptionStatus struct {
+type DisruptionStatus struct {
 	State   DisruptionState
 	Message string
 }
@@ -122,6 +103,7 @@ type CreateRequest struct {
 	TotalResources          Resources // TotalResources is the total resources available on the Node.
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
 	CapabilityIDs           []string  // Capabilities is a list of capabilities that the Node has.
+	LocalVolumes            []LocalVolume
 }
 
 // CreateResponse represents the response after creating a new Node.
@@ -183,13 +165,13 @@ type DeleteRequest struct {
 
 type AddDisruptionRequest struct {
 	Metadata   core.Metadata
-	Disruption NodeDisruption
+	Disruption Disruption
 }
 
 type UpdateDisruptionStatusRequest struct {
 	Metadata     core.Metadata
 	DisruptionID string
-	Status       NodeDisruptionStatus
+	Status       DisruptionStatus
 }
 
 type RemoveDisruptionRequest struct {

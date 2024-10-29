@@ -11,49 +11,20 @@ import (
 
 type NodeService struct {
 	ledger              node.Ledger
-	protoToLedgerRecord func(proto *mrdspb.Node) node.NodeRecord
 	ledgerRecordToProto func(record node.NodeRecord) *mrdspb.Node
 
 	mrdspb.UnimplementedNodesServer
 }
 
-func nodeProtoToLedgerRecord(proto *mrdspb.Node) node.NodeRecord {
-	return node.NodeRecord{
-		Metadata: core.Metadata{
-			ID:      proto.Metadata.Id,
-			Version: proto.Metadata.Version,
-		},
-		Name: proto.Name,
-		Status: node.NodeStatus{
-			State:   node.NodeState(proto.Status.State.String()),
-			Message: proto.Status.Message,
-		},
-		ClusterID:    proto.ClusterId,
-		UpdateDomain: proto.UpdateDomain,
-		TotalResources: node.Resources{
-			Cores:  proto.TotalResources.Cores,
-			Memory: proto.TotalResources.Memory,
-		},
-		SystemReservedResources: node.Resources{
-			Cores:  proto.SystemReservedResources.Cores,
-			Memory: proto.SystemReservedResources.Memory,
-		},
-		RemainingResources: node.Resources{
-			Cores:  proto.RemainingResources.Cores,
-			Memory: proto.RemainingResources.Memory,
-		},
-	}
-}
-
 func nodeLedgerRecordToProto(record node.NodeRecord) *mrdspb.Node {
-	return &mrdspb.Node{
+	node := &mrdspb.Node{
 		Metadata: &mrdspb.Metadata{
 			Id:      record.Metadata.ID,
 			Version: record.Metadata.Version,
 		},
 		Name: record.Name,
 		Status: &mrdspb.NodeStatus{
-			State:   mrdspb.NodeState(mrdspb.NodeState_value[record.Status.State.ToString()]),
+			State:   mrdspb.NodeState(mrdspb.NodeState_value[string(record.Status.State)]),
 			Message: record.Status.Message,
 		},
 		ClusterId:    record.ClusterID,
@@ -70,13 +41,34 @@ func nodeLedgerRecordToProto(record node.NodeRecord) *mrdspb.Node {
 			Cores:  record.RemainingResources.Cores,
 			Memory: record.RemainingResources.Memory,
 		},
+		CapabilityIds: record.CapabilityIDs,
 	}
+
+	for _, disruption := range record.Disruptions {
+		node.Disruptions = append(node.Disruptions, &mrdspb.NodeDisruption{
+			Id:          disruption.ID,
+			ShouldEvict: disruption.ShouldEvict,
+			Status: &mrdspb.DisruptionStatus{
+				State:   mrdspb.DisruptionState(mrdspb.DisruptionState_value[string(disruption.Status.State)]),
+				Message: disruption.Status.Message,
+			},
+		})
+	}
+
+	for _, localVolume := range record.LocalVolumes {
+		node.LocalVolumes = append(node.LocalVolumes, &mrdspb.NodeLocalVolume{
+			MountPath:       localVolume.MountPath,
+			StorageClass:    localVolume.StorageClass,
+			StorageCapacity: localVolume.StorageCapacity,
+		})
+	}
+
+	return node
 }
 
 func NewNodeService(ledger node.Ledger) *NodeService {
 	return &NodeService{
 		ledger:              ledger,
-		protoToLedgerRecord: nodeProtoToLedgerRecord,
 		ledgerRecordToProto: nodeLedgerRecordToProto,
 	}
 }
@@ -86,7 +78,7 @@ func (s *NodeService) Create(ctx context.Context, req *mrdspb.CreateNodeRequest)
 	if req.TotalResources == nil || req.SystemReservedResources == nil {
 		return nil, fmt.Errorf("TotalResources and SystemReservedResources are required")
 	}
-	createResponse, err := s.ledger.Create(ctx, &node.CreateRequest{
+	cr := &node.CreateRequest{
 		Name: req.Name,
 		TotalResources: node.Resources{
 			Cores:  req.TotalResources.Cores,
@@ -96,8 +88,19 @@ func (s *NodeService) Create(ctx context.Context, req *mrdspb.CreateNodeRequest)
 			Cores:  req.SystemReservedResources.Cores,
 			Memory: req.SystemReservedResources.Memory,
 		},
-		UpdateDomain: req.UpdateDomain,
-	})
+		UpdateDomain:  req.UpdateDomain,
+		CapabilityIDs: req.CapabilityIds,
+	}
+
+	for _, localVolume := range req.LocalVolumes {
+		cr.LocalVolumes = append(cr.LocalVolumes, node.LocalVolume{
+			MountPath:       localVolume.MountPath,
+			StorageClass:    localVolume.StorageClass,
+			StorageCapacity: localVolume.StorageCapacity,
+		})
+	}
+
+	createResponse, err := s.ledger.Create(ctx, cr)
 	if err != nil {
 		return nil, err
 	}
@@ -179,12 +182,12 @@ func (s *NodeService) List(ctx context.Context, req *mrdspb.ListNodeRequest) (*m
 
 	stateIn := make([]node.NodeState, len(req.StateIn))
 	for i, state := range req.StateIn {
-		stateIn[i] = node.NodeStateFromString(state.String())
+		stateIn[i] = node.NodeState(state.String())
 	}
 
 	stateNotIn := make([]node.NodeState, len(req.StateNotIn))
 	for i, state := range req.StateNotIn {
-		stateNotIn[i] = node.NodeStateFromString(state.String())
+		stateNotIn[i] = node.NodeState(state.String())
 	}
 
 	listResponse, err := s.ledger.List(ctx, &node.ListRequest{
@@ -228,4 +231,87 @@ func (s *NodeService) Delete(ctx context.Context, req *mrdspb.DeleteNodeRequest)
 		return nil, err
 	}
 	return &mrdspb.DeleteNodeResponse{}, nil
+}
+
+// AddDisruption adds a disruption to a Node
+func (s *NodeService) AddDisruption(ctx context.Context, req *mrdspb.AddDisruptionRequest) (*mrdspb.UpdateNodeResponse, error) {
+	addDisruptionResponse, err := s.ledger.AddDisruption(ctx, &node.AddDisruptionRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		Disruption: node.Disruption{
+			ID:          req.Disruption.Id,
+			ShouldEvict: req.Disruption.ShouldEvict,
+			Status: node.DisruptionStatus{
+				State:   node.DisruptionState(req.Disruption.Status.State.String()),
+				Message: req.Disruption.Status.Message,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateNodeResponse{Record: s.ledgerRecordToProto(addDisruptionResponse.Record)}, nil
+}
+
+// UpdateDisruptionStatus updates the status of a disruption on a Node
+func (s *NodeService) UpdateDisruptionStatus(ctx context.Context, req *mrdspb.UpdateDisruptionStatusRequest) (*mrdspb.UpdateNodeResponse, error) {
+	updateDisruptionStatusResponse, err := s.ledger.UpdateDisruptionStatus(ctx, &node.UpdateDisruptionStatusRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		DisruptionID: req.DisruptionId,
+		Status: node.DisruptionStatus{
+			State:   node.DisruptionState(req.Status.State.String()),
+			Message: req.Status.Message,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateNodeResponse{Record: s.ledgerRecordToProto(updateDisruptionStatusResponse.Record)}, nil
+}
+
+func (s *NodeService) RemoveDisruption(ctx context.Context, req *mrdspb.RemoveDisruptionRequest) (*mrdspb.UpdateNodeResponse, error) {
+	removeDisruptionResponse, err := s.ledger.RemoveDisruption(ctx, &node.RemoveDisruptionRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		DisruptionID: req.DisruptionId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateNodeResponse{Record: s.ledgerRecordToProto(removeDisruptionResponse.Record)}, nil
+}
+
+func (s *NodeService) AddCapability(ctx context.Context, req *mrdspb.AddCapabilityRequest) (*mrdspb.UpdateNodeResponse, error) {
+	addCapabilityResponse, err := s.ledger.AddCapability(ctx, &node.AddCapabilityRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		CapabilityID: req.CapabilityId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateNodeResponse{Record: s.ledgerRecordToProto(addCapabilityResponse.Record)}, nil
+}
+
+func (s *NodeService) RemoveCapability(ctx context.Context, req *mrdspb.RemoveCapabilityRequest) (*mrdspb.UpdateNodeResponse, error) {
+	removeCapabilityResponse, err := s.ledger.RemoveCapability(ctx, &node.RemoveCapabilityRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		CapabilityID: req.CapabilityId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateNodeResponse{Record: s.ledgerRecordToProto(removeCapabilityResponse.Record)}, nil
 }

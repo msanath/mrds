@@ -42,7 +42,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 			Cores:  60,
 			Memory: 480,
 		},
-		LocalVolumes: []node.NodeLocalVolume{
+		LocalVolumes: []node.LocalVolume{
 			{
 				MountPath:       "/var/lib/foo",
 				StorageClass:    "SSD",
@@ -133,11 +133,11 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Add disruption", func(t *testing.T) {
-		disruption := node.NodeDisruption{
-			ID:        "disruption-1",
-			StartTime: time.Now().Truncate(time.Second),
-			EvictNode: true,
-			Status: node.NodeDisruptionStatus{
+		disruption := node.Disruption{
+			ID:          "disruption-1",
+			StartTime:   time.Now().Truncate(time.Second),
+			ShouldEvict: true,
+			Status: node.DisruptionStatus{
 				State:   node.DisruptionStateScheduled,
 				Message: "Scheduled",
 			},
@@ -155,7 +155,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Update disruption", func(t *testing.T) {
-		err := repo.UpdateDisruptionStatus(ctx, testRecord.Metadata, "disruption-1", node.NodeDisruptionStatus{
+		err := repo.UpdateDisruptionStatus(ctx, testRecord.Metadata, "disruption-1", node.DisruptionStatus{
 			State:   node.DisruptionStateApproved,
 			Message: "Approved",
 		})
