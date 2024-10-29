@@ -52,9 +52,6 @@ type NodeDisruptionTableSelectFilters struct {
 	StateNotIn     []string `db:"state:not_in"`     // NOT IN condition
 	StartTimeGte   *uint64  `db:"start_time:gte"`   // Greater than or equal condition
 	StartTimeLte   *uint64  `db:"start_time:lte"`   // Less than or equal condition
-
-	IncludeDeleted bool   `db:"include_deleted"` // Special boolean handling
-	Limit          uint32 `db:"limit"`
 }
 
 const nodeDisruptionTableName = "node_disruption"

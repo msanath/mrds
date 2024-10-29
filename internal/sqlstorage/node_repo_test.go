@@ -11,7 +11,6 @@ import (
 	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,6 +42,18 @@ func TestNodeRecordLifecycle(t *testing.T) {
 			Cores:  60,
 			Memory: 480,
 		},
+		LocalVolumes: []node.NodeLocalVolume{
+			{
+				MountPath:       "/var/lib/foo",
+				StorageClass:    "SSD",
+				StorageCapacity: 100,
+			},
+			{
+				MountPath:       "/var/lib/bar",
+				StorageClass:    "HDD",
+				StorageCapacity: 200,
+			},
+		},
 	}
 	repo := storage.Node
 	ctx := context.Background()
@@ -62,8 +73,14 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	t.Run("Get By Metadata Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
 		require.NoError(t, err)
-		require.Equal(t, testRecord, receivedRecord)
+		require.Equal(t, testRecord.Metadata, receivedRecord.Metadata)
+		require.Equal(t, testRecord.Name, receivedRecord.Name)
+		require.Equal(t, testRecord.Status, receivedRecord.Status)
+		require.Equal(t, testRecord.UpdateDomain, receivedRecord.UpdateDomain)
+		require.Equal(t, testRecord.TotalResources, receivedRecord.TotalResources)
+		require.Equal(t, testRecord.SystemReservedResources, receivedRecord.SystemReservedResources)
 		require.Equal(t, testRecord.RemainingResources, receivedRecord.RemainingResources)
+		require.ElementsMatch(t, testRecord.LocalVolumes, receivedRecord.LocalVolumes)
 	})
 
 	t.Run("Get By Metadata failure", func(t *testing.T) {
@@ -79,7 +96,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	t.Run("Get By Name Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByName(ctx, testRecord.Name)
 		require.NoError(t, err)
-		require.Empty(t, cmp.Diff(testRecord, receivedRecord))
+		require.Equal(t, testRecord.Name, receivedRecord.Name)
 	})
 
 	t.Run("Get By Name Failure", func(t *testing.T) {

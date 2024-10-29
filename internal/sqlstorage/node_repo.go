@@ -13,8 +13,9 @@ import (
 // nodeStorage is a concrete implementation of NodeRepository using sqlx
 type nodeStorage struct {
 	simplesql.Database
-	nodeTable           *tables.NodeTable
-	nodeDisruptionTable *tables.NodeDisruptionTable
+	nodeTable            *tables.NodeTable
+	nodeLocalVolumeTable *tables.NodeLocalVolumeTable
+	nodeDisruptionTable  *tables.NodeDisruptionTable
 }
 
 func nodeRecordToRow(record node.NodeRecord) tables.NodeRow {
@@ -86,18 +87,53 @@ func nodeDisruptionRowToRecord(row tables.NodeDisruptionRow) node.NodeDisruption
 	}
 }
 
+func nodeLocalVolumeRecordToRow(nodeID string, record node.NodeLocalVolume) tables.NodeLocalVolumeRow {
+	return tables.NodeLocalVolumeRow{
+		NodeID:          nodeID,
+		MountPath:       record.MountPath,
+		StorageClass:    record.StorageClass,
+		StorageCapacity: record.StorageCapacity,
+	}
+}
+
+func nodeLocalVolumeRowToRecord(row tables.NodeLocalVolumeRow) node.NodeLocalVolume {
+	return node.NodeLocalVolume{
+		MountPath:       row.MountPath,
+		StorageClass:    row.StorageClass,
+		StorageCapacity: row.StorageCapacity,
+	}
+}
+
 // newNodeStorage creates a new storage instance satisfying the NodeRepository interface
 func newNodeStorage(db simplesql.Database) node.Repository {
 	return &nodeStorage{
-		Database:            db,
-		nodeTable:           tables.NewNodeTable(db),
-		nodeDisruptionTable: tables.NewNodeDisruptionTable(db),
+		Database:             db,
+		nodeTable:            tables.NewNodeTable(db),
+		nodeLocalVolumeTable: tables.NewNodeLocalVolumeTable(db),
+		nodeDisruptionTable:  tables.NewNodeDisruptionTable(db),
 	}
 }
 
 func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error {
-	execer := s.DB
-	err := s.nodeTable.Insert(ctx, execer, nodeRecordToRow(record))
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	err = s.nodeTable.Insert(ctx, tx, nodeRecordToRow(record))
+	if err != nil {
+		return errHandler(err)
+	}
+
+	for _, localVolume := range record.LocalVolumes {
+		err = s.nodeLocalVolumeTable.Insert(ctx, tx, nodeLocalVolumeRecordToRow(record.Metadata.ID, localVolume))
+		if err != nil {
+			return errHandler(err)
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return errHandler(err)
 	}
@@ -109,6 +145,7 @@ func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata)
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
+	nodeRecord := nodeRowToRecord(nodeRow)
 
 	// Get the corresponding disruptionRows
 	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
@@ -117,13 +154,20 @@ func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata)
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
-	var disruptionRecords []node.NodeDisruption
 	for _, disruption := range disruptionRows {
-		disruptionRecords = append(disruptionRecords, nodeDisruptionRowToRecord(disruption))
+		nodeRecord.Disruptions = append(nodeRecord.Disruptions, nodeDisruptionRowToRecord(disruption))
 	}
 
-	nodeRecord := nodeRowToRecord(nodeRow)
-	nodeRecord.Disruptions = disruptionRecords
+	// Get the corresponding volumeRows
+	volumeRows, err := s.nodeLocalVolumeTable.List(ctx, tables.NodeLocalVolumeTableSelectFilters{
+		NodeIDIn: []string{metadata.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	for _, volume := range volumeRows {
+		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
+	}
 
 	return nodeRecord, nil
 }
@@ -133,21 +177,29 @@ func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.Node
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
+	nodeRecord := nodeRowToRecord(nodeRow)
 
 	// Get the corresponding disruptionRows
 	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
-		NodeIDIn: []string{nodeRow.ID},
+		NodeIDIn: []string{nodeRecord.Metadata.ID},
 	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
-	var disruptionRecords []node.NodeDisruption
 	for _, disruption := range disruptionRows {
-		disruptionRecords = append(disruptionRecords, nodeDisruptionRowToRecord(disruption))
+		nodeRecord.Disruptions = append(nodeRecord.Disruptions, nodeDisruptionRowToRecord(disruption))
 	}
 
-	nodeRecord := nodeRowToRecord(nodeRow)
-	nodeRecord.Disruptions = disruptionRecords
+	// Get the corresponding volumeRows
+	volumeRows, err := s.nodeLocalVolumeTable.List(ctx, tables.NodeLocalVolumeTableSelectFilters{
+		NodeIDIn: []string{nodeRecord.Metadata.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	for _, volume := range volumeRows {
+		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
+	}
 	return nodeRecord, nil
 }
 
@@ -225,10 +277,22 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 		disruptionMap[disruption.NodeID] = append(disruptionMap[disruption.NodeID], nodeDisruptionRowToRecord(disruption))
 	}
 
+	volumeRows, err := s.nodeLocalVolumeTable.List(ctx, tables.NodeLocalVolumeTableSelectFilters{
+		NodeIDIn: nodeIDs,
+	})
+	if err != nil {
+		return nil, errHandler(err)
+	}
+	volumeMap := make(map[string][]node.NodeLocalVolume)
+	for _, volume := range volumeRows {
+		volumeMap[volume.NodeID] = append(volumeMap[volume.NodeID], nodeLocalVolumeRowToRecord(volume))
+	}
+
 	var records []node.NodeRecord
 	for _, row := range rows {
 		record := nodeRowToRecord(row)
 		record.Disruptions = disruptionMap[row.ID]
+		record.LocalVolumes = volumeMap[row.ID]
 		records = append(records, record)
 	}
 

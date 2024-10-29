@@ -19,7 +19,8 @@ type NodeRecord struct {
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
 	RemainingResources      Resources // RemainingResources is the resources available for application use.
 
-	Disruptions []NodeDisruption // Disruptions is a list of disruptions that are scheduled or approved for the Node.
+	LocalVolumes []NodeLocalVolume // LocalVolumes is a list of local volumes attached to the Node.
+	Disruptions  []NodeDisruption  // Disruptions is a list of disruptions that are scheduled or approved for the Node.
 }
 
 type Resources struct {
@@ -61,6 +62,12 @@ func NodeStateFromString(s string) NodeState {
 type NodeStatus struct {
 	State   NodeState // State is the discrete condition of the resource.
 	Message string    // Message is a human-readable description of the resource's state.
+}
+
+type NodeLocalVolume struct {
+	MountPath       string
+	StorageClass    string
+	StorageCapacity uint32
 }
 
 type NodeDisruption struct {
