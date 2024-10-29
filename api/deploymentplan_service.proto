@@ -7,7 +7,7 @@ import "deploymentplan.proto";
 
 option go_package = "/api/mrdspb";
 
-// Service definition for managing DeploymentPlan records.
+
 service DeploymentPlans {
     // Create a new DeploymentPlan.
     rpc Create(CreateDeploymentPlanRequest) returns (CreateDeploymentPlanResponse);
@@ -26,91 +26,107 @@ service DeploymentPlans {
 
     // Delete a DeploymentPlan by its metadata.
     rpc Delete(DeleteDeploymentPlanRequest) returns (DeleteDeploymentPlanResponse);
+
+    // Add a Deployment to an existing DeploymentPlan.
+    rpc AddDeployment(AddDeploymentRequest) returns (UpdateDeploymentPlanResponse);
+
+    // Update the status of an existing Deployment.
+    rpc UpdateDeploymentStatus(UpdateDeploymentStatusRequest) returns (UpdateDeploymentPlanResponse);
 }
 
-// Request to create a new DeploymentPlan.
+// Request and response messages for service methods.
+
+// CreateDeploymentPlanRequest represents the request to create a DeploymentPlan.
 message CreateDeploymentPlanRequest {
     string name = 1;
+    string namespace = 2;
+    string service_name = 3;
+    repeated MatchingComputeCapability matching_compute_capabilities = 4;
+    repeated Application applications = 5;
 }
 
-// Response after creating a new DeploymentPlan.
+// CreateDeploymentPlanResponse represents the response after creating a DeploymentPlan.
 message CreateDeploymentPlanResponse {
-    // The newly created DeploymentPlan record.
-    DeploymentPlan record = 1;
+    DeploymentPlanRecord record = 1;
 }
 
-// Request to update the state and message of a DeploymentPlan.
-message UpdateDeploymentPlanStatusRequest {
-    // The metadata of the DeploymentPlan to update.
-    core.Metadata metadata = 1;
-
-    // The new state of the DeploymentPlan.
-    DeploymentPlanStatus status = 2;
-}
-
-// Response after updating the state of a DeploymentPlan.
-message UpdateDeploymentPlanResponse {
-    // The updated DeploymentPlan record.
-    DeploymentPlan record = 1;
-}
-
+// GetDeploymentPlanByMetadataRequest represents the request to get a DeploymentPlan by metadata.
 message GetDeploymentPlanByMetadataRequest {
     core.Metadata metadata = 1;
 }
 
-// Request for getting a DeploymentPlan by its name.
+// GetDeploymentPlanByNameRequest represents the request to get a DeploymentPlan by name.
 message GetDeploymentPlanByNameRequest {
-    // The name of the DeploymentPlan to get.
     string name = 1;
 }
 
-// Response after fetching a DeploymentPlan.
+// GetDeploymentPlanResponse represents the response for fetching a DeploymentPlan.
 message GetDeploymentPlanResponse {
-    // The DeploymentPlan record that was fetched.
-    DeploymentPlan record = 1;
+    DeploymentPlanRecord record = 1;
 }
 
-// Request to list DeploymentPlans with specific filters.
+// UpdateDeploymentPlanStatusRequest represents the request to update the state of a DeploymentPlan.
+message UpdateDeploymentPlanStatusRequest {
+    core.Metadata metadata = 1;
+    DeploymentPlanStatus status = 2;
+}
+
+// UpdateDeploymentPlanResponse represents the response after updating the state of a DeploymentPlan.
+message UpdateDeploymentPlanResponse {
+    DeploymentPlanRecord record = 1;
+}
+
+// ListDeploymentPlanRequest represents the request to list DeploymentPlans with filters.
 message ListDeploymentPlanRequest {
-    // IN condition for filtering by IDs.
-    repeated string id_in = 1;
-
-    // IN condition for filtering by Names.
-    repeated string name_in = 2;
-
-    // Greater than or equal condition for filtering by version.
-    uint64 version_gte = 3;
-
-    // Less than or equal condition for filtering by version.
-    uint64 version_lte = 4;
-
-    // Equal condition for filtering by version.
-    uint64 version_eq = 5;
-
-    // IN condition for filtering by state.
-    repeated DeploymentPlanState state_in = 6;
-
-    // NOT IN condition for filtering by state.
-    repeated DeploymentPlanState state_not_in = 7;
-
-    // Whether to include soft-deleted resources in the query.
-    bool include_deleted = 8;
-
-    // Limit the number of results returned.
-    uint32 limit = 9;
+    DeploymentPlanListFilters filters = 1;
 }
 
-// Response for listing DeploymentPlans.
+// ListDeploymentPlanResponse represents the response to a list request.
 message ListDeploymentPlanResponse {
-    // The list of DeploymentPlan records that match the query.
-    repeated DeploymentPlan records = 1;
+    repeated DeploymentPlanRecord records = 1;
 }
 
-// Request to delete a DeploymentPlan by its metadata.
+// DeleteDeploymentPlanRequest represents the request to delete a DeploymentPlan by metadata.
 message DeleteDeploymentPlanRequest {
-    // The metadata of the DeploymentPlan to delete.
     core.Metadata metadata = 1;
 }
 
-// Response after deleting a DeploymentPlan.
-message DeleteDeploymentPlanResponse {}
+// DeleteDeploymentPlanResponse represents the response after deleting a DeploymentPlan.
+message DeleteDeploymentPlanResponse {
+    bool success = 1;
+}
+
+// AddDeploymentRequest represents the request to add a deployment to a DeploymentPlan.
+message AddDeploymentRequest {
+    core.Metadata metadata = 1;
+    string deployment_id = 2;
+    repeated PayloadCoordinates payload_coordinates = 3;
+    uint32 instance_count = 4;
+}
+
+// UpdateDeploymentStatusRequest represents the request to update the status of a deployment.
+message UpdateDeploymentStatusRequest {
+    core.Metadata metadata = 1;
+    string deployment_id = 2;
+    DeploymentStatus status = 3;
+}
+
+// DeploymentPlanListFilters defines the filters for listing DeploymentPlans.
+message DeploymentPlanListFilters {
+    repeated string id_in = 1;
+    repeated string name_in = 2;
+    optional uint64 version_gte = 3;
+    optional uint64 version_lte = 4;
+    optional uint64 version_eq = 5;
+    repeated string payload_name_in = 6;
+    repeated string service_name_in = 7;
+
+    repeated string deployment_plan_id_in = 8;
+    repeated DeploymentPlanState deployment_plan_status_in = 9;
+
+    bool include_deleted = 10;
+    uint32 limit = 11;
+
+    repeated DeploymentPlanState state_in = 12;
+    repeated DeploymentPlanState state_not_in = 13;
+}

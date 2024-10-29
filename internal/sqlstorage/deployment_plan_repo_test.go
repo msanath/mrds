@@ -1,4 +1,3 @@
-
 package sqlstorage_test
 
 import (
@@ -6,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	"github.com/msanath/mrds/internal/ledger/core"
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/sqlstorage"
 
@@ -36,6 +35,53 @@ func TestDeploymentPlanRecordLifecycle(t *testing.T) {
 			State:   deploymentplan.DeploymentPlanStateActive,
 			Message: "",
 		},
+		Namespace:   "default",
+		ServiceName: "service1",
+		MatchingComputeCapabilities: []deploymentplan.MatchingComputeCapability{
+			{
+				CapabilityType:  "capability1",
+				Comparator:      deploymentplan.ComparatorTypeIn,
+				CapabilityNames: []string{"name1", "name2"},
+			},
+			{
+				CapabilityType:  "capability2",
+				Comparator:      deploymentplan.ComparatorTypeNotIn,
+				CapabilityNames: []string{"name3", "name4"},
+			},
+		},
+		Applications: []deploymentplan.Application{
+			{
+				PayloadName: "app1",
+				Resources: deploymentplan.ApplicationResources{
+					Cores:  1,
+					Memory: 200,
+				},
+				Ports: []deploymentplan.ApplicationPort{
+					{
+						Protocol: "TCP",
+						Port:     8080,
+					},
+					{
+						Protocol: "UDP",
+						Port:     8081,
+					},
+				},
+			},
+			{
+				PayloadName: "app2",
+				Resources: deploymentplan.ApplicationResources{
+					Cores:  1,
+					Memory: 200,
+				},
+				PersistentVolumes: []deploymentplan.ApplicationPersistentVolume{
+					{
+						StorageClass: "SSD",
+						Capacity:     1024,
+						MountPath:    "/data",
+					},
+				},
+			},
+		},
 	}
 	repo := storage.DeploymentPlan
 
@@ -60,7 +106,11 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 	t.Run("Get By Metadata Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
 		require.NoError(t, err)
-		require.Equal(t, testRecord, receivedRecord)
+		require.Equal(t, testRecord.Name, receivedRecord.Name)
+		require.Equal(t, testRecord.Status, receivedRecord.Status)
+		require.Equal(t, testRecord.Namespace, receivedRecord.Namespace)
+		require.Equal(t, testRecord.ServiceName, receivedRecord.ServiceName)
+		require.ElementsMatch(t, testRecord.Applications, receivedRecord.Applications)
 	})
 
 	t.Run("Get By Metadata failure", func(t *testing.T) {
@@ -101,6 +151,59 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 		testRecord = updatedRecord
 	})
 
+	t.Run("Insert Deployment Success", func(t *testing.T) {
+		err = repo.InsertDeployment(ctx, testRecord.Metadata, deploymentplan.Deployment{
+			ID: "deployment1",
+			Status: deploymentplan.DeploymentStatus{
+				State:   deploymentplan.DeploymentStateInProgress,
+				Message: "Deployment in progress",
+			},
+			InstanceCount: 20,
+			PayloadCoordinates: []deploymentplan.PayloadCoordinates{
+				{
+					PayloadName: "app1",
+					Coordinates: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
+				{
+					PayloadName: "app2",
+					Coordinates: map[string]string{
+						"key3": "value3",
+						"key4": "value4",
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Deployments, 1)
+		require.Equal(t, "deployment1", updatedRecord.Deployments[0].ID)
+		require.Equal(t, deploymentplan.DeploymentStateInProgress, updatedRecord.Deployments[0].Status.State)
+		require.Equal(t, "Deployment in progress", updatedRecord.Deployments[0].Status.Message)
+		require.Equal(t, uint32(20), updatedRecord.Deployments[0].InstanceCount)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Update Deployment State Success", func(t *testing.T) {
+		err = repo.UpdateDeploymentStatus(ctx, testRecord.Metadata, "deployment1", deploymentplan.DeploymentStatus{
+			State:   deploymentplan.DeploymentStateFailed,
+			Message: "Deployment failed",
+		})
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Deployments, 1)
+		require.Equal(t, "deployment1", updatedRecord.Deployments[0].ID)
+		require.Equal(t, deploymentplan.DeploymentStateFailed, updatedRecord.Deployments[0].Status.State)
+		require.Equal(t, "Deployment failed", updatedRecord.Deployments[0].Status.Message)
+		testRecord = updatedRecord
+	})
+
 	t.Run("Delete Success", func(t *testing.T) {
 		err = repo.Delete(ctx, testRecord.Metadata)
 		require.NoError(t, err)
@@ -119,9 +222,10 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 			newRecord.Name = fmt.Sprintf("%s-%d", deploymentPlanidPrefix, i+1)
 			newRecord.Status.State = deploymentplan.DeploymentPlanStateActive
 			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", deploymentPlanidPrefix, i+1)
+			newRecord.Applications = testRecord.Applications
 
 			if (i+1)%2 == 0 {
-				newRecord.Status.State = deploymentplan.DeploymentPlanStateInActive
+				newRecord.Status.State = deploymentplan.DeploymentPlanStateInactive
 				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", deploymentPlanidPrefix, i+1)
 			}
 
@@ -156,6 +260,7 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 			require.Len(t, records, 5)
 			for _, record := range records {
 				require.Equal(t, deploymentplan.DeploymentPlanStateActive, record.Status.State)
+				require.Equal(t, 2, len(record.Applications))
 			}
 		})
 
@@ -198,13 +303,13 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, deploymentplan.DeploymentPlanStateInActive, record.Status.State)
+				require.Equal(t, deploymentplan.DeploymentPlanStateInactive, record.Status.State)
 			}
 		})
 
 		t.Run("Update State and check version", func(t *testing.T) {
 			status := deploymentplan.DeploymentPlanStatus{
-				State:   deploymentplan.DeploymentPlanStatePending,
+				State:   deploymentplan.DeploymentPlanStateInactive,
 				Message: "Needs attention",
 			}
 

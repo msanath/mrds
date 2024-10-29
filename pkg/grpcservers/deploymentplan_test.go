@@ -1,10 +1,10 @@
-
 package grpcservers_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/msanath/mrds/gen/api/mrdspb"
 	servertest "github.com/msanath/mrds/pkg/grpcservers/test"
 
@@ -19,11 +19,41 @@ func TestDeploymentPlanServer(t *testing.T) {
 	client := mrdspb.NewDeploymentPlansClient(ts.Conn())
 	ctx := context.Background()
 
+	req := &mrdspb.CreateDeploymentPlanRequest{
+		Name:        "test-deployment-plan",
+		Namespace:   "test-namespace",
+		ServiceName: "test-service",
+		Applications: []*mrdspb.Application{
+			{
+				PayloadName: "test-payload",
+				Resources: &mrdspb.ApplicationResources{
+					Cores:  1,
+					Memory: 1023,
+				},
+				PersistentVolumes: []*mrdspb.ApplicationPersistentVolume{
+					{
+						MountPath:    "/data",
+						Capacity:     1024,
+						StorageClass: "SSD",
+					},
+				},
+				Ports: []*mrdspb.ApplicationPort{
+					{
+						Protocol: "TCP",
+						Port:     80,
+					},
+				},
+			},
+		},
+	}
 	// create
-	resp, err := client.Create(ctx, &mrdspb.CreateDeploymentPlanRequest{Name: "test-DeploymentPlan"})
+	resp, err := client.Create(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, "test-DeploymentPlan", resp.Record.Name)
+	require.Equal(t, "test-deployment-plan", resp.Record.Name)
+	require.Equal(t, "test-namespace", resp.Record.Namespace)
+	require.Equal(t, "test-service", resp.Record.ServiceName)
+	require.Len(t, resp.Record.Applications, 1)
 
 	// get by metadata
 	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetDeploymentPlanByMetadataRequest{
@@ -31,45 +61,75 @@ func TestDeploymentPlanServer(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
-	require.Equal(t, "test-DeploymentPlan", getResp.Record.Name)
+	require.Equal(t, "test-deployment-plan", getResp.Record.Name)
 
 	// get by name
-	getByNameResp, err := client.GetByName(ctx, &mrdspb.GetDeploymentPlanByNameRequest{Name: "test-DeploymentPlan"})
+	getByNameResp, err := client.GetByName(ctx, &mrdspb.GetDeploymentPlanByNameRequest{Name: "test-deployment-plan"})
 	require.NoError(t, err)
 	require.NotNil(t, getByNameResp)
-	require.Equal(t, "test-DeploymentPlan", getByNameResp.Record.Name)
+	require.Equal(t, "test-deployment-plan", getByNameResp.Record.Name)
 
-	// update
+	// update status
 	updateResp, err := client.UpdateStatus(ctx, &mrdspb.UpdateDeploymentPlanStatusRequest{
 		Metadata: resp.Record.Metadata,
 		Status: &mrdspb.DeploymentPlanStatus{
-			State:   mrdspb.DeploymentPlanState_DeploymentPlanState_ACTIVE,
-			Message: "test-message",
+			State:   mrdspb.DeploymentPlanState_DeploymentPlanState_INACTIVE,
+			Message: "Deployment is now active",
 		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, updateResp)
-	require.Equal(t, "test-DeploymentPlan", updateResp.Record.Name)
-	require.Equal(t, mrdspb.DeploymentPlanState_DeploymentPlanState_ACTIVE, updateResp.Record.Status.State)
+	require.Equal(t, "test-deployment-plan", updateResp.Record.Name)
+	require.Equal(t, mrdspb.DeploymentPlanState_DeploymentPlanState_INACTIVE, updateResp.Record.Status.State)
 
-	// Create another
-	resp2, err := client.Create(ctx, &mrdspb.CreateDeploymentPlanRequest{Name: "test-DeploymentPlan-2"})
+	// Add deployment
+	updateResp, err = client.AddDeployment(ctx, &mrdspb.AddDeploymentRequest{
+		Metadata:     updateResp.Record.Metadata,
+		DeploymentId: uuid.New().String(),
+		PayloadCoordinates: []*mrdspb.PayloadCoordinates{
+			{
+				PayloadName: "test-payload",
+				Coordinates: map[string]string{
+					"key": "value",
+				},
+			},
+		},
+		InstanceCount: 1,
+	})
 	require.NoError(t, err)
-	require.NotNil(t, resp2)
+	require.NotNil(t, updateResp)
+	require.Equal(t, "test-deployment-plan", updateResp.Record.Name)
+	require.Len(t, updateResp.Record.Deployments, 1)
+
+	// Update deployment status
+	updateResp, err = client.UpdateDeploymentStatus(ctx, &mrdspb.UpdateDeploymentStatusRequest{
+		Metadata:     updateResp.Record.Metadata,
+		DeploymentId: updateResp.Record.Deployments[0].Id,
+		Status: &mrdspb.DeploymentStatus{
+			State:   mrdspb.DeploymentState_DeploymentState_COMPLETED,
+			Message: "Deployment completed",
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updateResp)
+	require.Equal(t, "test-deployment-plan", updateResp.Record.Name)
+	require.Equal(t, mrdspb.DeploymentState_DeploymentState_COMPLETED, updateResp.Record.Deployments[0].Status.State)
 
 	// list
 	listResp, err := client.List(ctx, &mrdspb.ListDeploymentPlanRequest{
-		StateIn: []mrdspb.DeploymentPlanState{mrdspb.DeploymentPlanState_DeploymentPlanState_ACTIVE},
+		Filters: &mrdspb.DeploymentPlanListFilters{
+			NameIn: []string{"test-deployment-plan"},
+		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, listResp)
 	require.Len(t, listResp.Records, 1)
 
 	// Delete
-	_, err = client.Delete(ctx, &mrdspb.DeleteDeploymentPlanRequest{Metadata: resp2.Record.Metadata})
+	_, err = client.Delete(ctx, &mrdspb.DeleteDeploymentPlanRequest{Metadata: updateResp.Record.Metadata})
 	require.NoError(t, err)
 
 	// Get deleted by name
-	_, err = client.GetByName(ctx, &mrdspb.GetDeploymentPlanByNameRequest{Name: "test-DeploymentPlan-2"})
+	_, err = client.GetByName(ctx, &mrdspb.GetDeploymentPlanByNameRequest{Name: "test-deployment-plan"})
 	require.Error(t, err)
 }

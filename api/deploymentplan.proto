@@ -7,31 +7,101 @@ import "metadata.proto";
 
 option go_package = "/api/mrdspb";
 
-// Enum to represent the DeploymentPlanState
+// DeploymentPlanRecord represents a workload expected to be deployed.
+message DeploymentPlanRecord {
+    core.Metadata metadata = 1; // Metadata identifies the Deployment.
+    string name = 2; // Name of this Deployment.
+    DeploymentPlanStatus status = 3; // Status of the Deployment.
+
+    string namespace = 4; // Namespace of the Deployment.
+    string service_name = 5; // Name of the service associated with the Deployment.
+    repeated MatchingComputeCapability matching_compute_capabilities = 6; // List of capabilities required by the Deployment.
+    repeated Application applications = 7; // List of applications required by the Deployment.
+
+    repeated Deployment deployments = 8; // Instantiations of the DeploymentPlan.
+}
+
+// DeploymentPlanStatus contains the state and message of a Deployment.
+message DeploymentPlanStatus {
+    DeploymentPlanState state = 1; // State of the resource.
+    string message = 2; // Human-readable description of the resource's state.
+}
+
+// Enum for the state of a Deployment.
 enum DeploymentPlanState {
     DeploymentPlanState_UNKNOWN = 0;
-	DeploymentPlanState_PENDING = 1;
-    DeploymentPlanState_ACTIVE = 2;
-    DeploymentPlanState_INACTIVE = 3;
+    DeploymentPlanState_ACTIVE = 1;
+    DeploymentPlanState_INACTIVE = 2;
 }
 
-// Message representing the DeploymentPlan
-message DeploymentPlan {
-    // Metadata is the metadata that identifies the DeploymentPlan.
-    core.Metadata metadata = 1;
-
-    // Name is the name of the DeploymentPlan.
-    string name = 2;
-
-    // Status represents the current status of the DeploymentPlan.
-    DeploymentPlanStatus status = 3;
+// MatchingComputeCapability represents the capabilities required by the Deployment.
+message MatchingComputeCapability {
+    string capability_type = 1;
+    Comparator comparator = 2;
+    repeated string capability_names = 3;
 }
 
-// Message representing the Status of a resource.
-message DeploymentPlanStatus {
-    // State is the discrete condition of the resource.
-    DeploymentPlanState state = 1;
+// Enum for the type of comparator used for capability matching.
+enum Comparator {
+    Comparator_IN = 0;
+    Comparator_NOT_IN = 1;
+    Comparator_GTE = 2;
+    ComparatorE_LTE = 3;
+}
 
-    // Message is a human-readable description of the resource's state.
-    string message = 2;
+// Application represents an application required by the Deployment.
+message Application {
+    string payload_name = 1;
+    ApplicationResources resources = 2;
+    repeated ApplicationPort ports = 3;
+    repeated ApplicationPersistentVolume persistent_volumes = 4;
+}
+
+// ApplicationResources defines the resource requirements for an application.
+message ApplicationResources {
+    uint32 cores = 1;
+    uint32 memory = 2;
+}
+
+// ApplicationPort defines the port settings for an application.
+message ApplicationPort {
+    string protocol = 1;
+    uint32 port = 2;
+}
+
+// ApplicationPersistentVolume defines a persistent volume for an application.
+message ApplicationPersistentVolume {
+    string storage_class = 1;
+    uint32 capacity = 2;
+    string mount_path = 3;
+}
+
+// Deployment represents an instance of the DeploymentPlan.
+message Deployment {
+    string id = 1; // ID of the DeploymentPlan.
+    DeploymentStatus status = 2; // Status of the Deployment.
+    repeated PayloadCoordinates payload_coordinates = 3; // Coordinates for the required payloads.
+    uint32 instance_count = 4; // Number of instances of the Deployment.
+}
+
+// DeploymentStatus defines the state and message of a Deployment.
+message DeploymentStatus {
+    DeploymentState state = 1; // State of the resource.
+    string message = 2; // Human-readable description of the resource's state.
+}
+
+// Enum for the state of a Deployment.
+enum DeploymentState {
+    DeploymentState_UNKNOWN = 0;
+    DeploymentState_PENDING = 1;
+    DeploymentState_IN_PROGRESS = 2;
+    DeploymentState_FAILED = 3;
+    DeploymentState_PAUSED = 4;
+    DeploymentState_COMPLETED = 5;
+}
+
+// PayloadCoordinates define the coordinates of a payload.
+message PayloadCoordinates {
+    string payload_name = 1;
+    map<string, string> coordinates = 2;
 }

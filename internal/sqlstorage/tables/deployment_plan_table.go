@@ -1,4 +1,3 @@
-
 package tables
 
 import (
@@ -20,7 +19,9 @@ var deploymentPlanTableMigrations = []simplesql.Migration{
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
 				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-				UNIQUE (id, name, is_deleted)
+				namespace VARCHAR(255) NOT NULL,
+				service_name VARCHAR(255) NOT NULL,
+				UNIQUE (name, is_deleted)
 			);
 		`,
 		Down: `
@@ -30,12 +31,14 @@ var deploymentPlanTableMigrations = []simplesql.Migration{
 }
 
 type DeploymentPlanRow struct {
-	ID        string `db:"id" orm:"op=create key=primary_key filter=In"`
-	Version   uint64 `db:"version" orm:"op=create,update"`
-	Name      string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted bool   `db:"is_deleted"`
-	State     string `db:"state" orm:"op=create,update filter=In,NotIn"`
-	Message   string `db:"message" orm:"op=create,update"`
+	ID          string `db:"id" orm:"op=create key=primary_key filter=In"`
+	Version     uint64 `db:"version" orm:"op=create,update"`
+	Name        string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
+	IsDeleted   bool   `db:"is_deleted"`
+	State       string `db:"state" orm:"op=create,update filter=In,NotIn"`
+	Message     string `db:"message" orm:"op=create,update"`
+	Namespace   string `db:"namespace" orm:"op=create filter=In"`
+	ServiceName string `db:"service_name" orm:"op=create filter=In"`
 }
 
 type DeploymentPlanTableUpdateFields struct {
@@ -44,13 +47,15 @@ type DeploymentPlanTableUpdateFields struct {
 }
 
 type DeploymentPlanTableSelectFilters struct {
-	IDIn       []string `db:"id:in"`        // IN condition
-	NameIn     []string `db:"name:in"`      // IN condition
-	StateIn    []string `db:"state:in"`     // IN condition
-	StateNotIn []string `db:"state:not_in"` // NOT IN condition
-	VersionGte *uint64  `db:"version:gte"`  // Greater than or equal condition
-	VersionLte *uint64  `db:"version:lte"`  // Less than or equal condition
-	VersionEq  *uint64  `db:"version:eq"`   // Equal condition
+	IDIn          []string `db:"id:in"`           // IN condition
+	NameIn        []string `db:"name:in"`         // IN condition
+	StateIn       []string `db:"state:in"`        // IN condition
+	StateNotIn    []string `db:"state:not_in"`    // NOT IN condition
+	VersionGte    *uint64  `db:"version:gte"`     // Greater than or equal condition
+	VersionLte    *uint64  `db:"version:lte"`     // Less than or equal condition
+	VersionEq     *uint64  `db:"version:eq"`      // Equal condition
+	ServiceNameIn []string `db:"service_name:in"` // IN condition
+	NamespaceIn   []string `db:"namespace:in"`    // IN condition
 
 	IncludeDeleted bool   `db:"include_deleted"` // Special boolean handling
 	Limit          uint32 `db:"limit"`

@@ -1,4 +1,3 @@
-
 package mrdsactivities
 
 import (
@@ -105,6 +104,32 @@ func (c *DeploymentPlanActivities) DeleteDeploymentPlan(ctx context.Context, req
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to delete DeploymentPlan", "error", err)
 		return nil, fmt.Errorf("failed to delete DeploymentPlan: %w", err)
+	}
+
+	return resp, nil
+}
+
+// AddDeployment adds a deployment to a DeploymentPlan.
+func (c *DeploymentPlanActivities) AddDeployment(ctx context.Context, req *mrdspb.AddDeploymentRequest) (*mrdspb.UpdateDeploymentPlanResponse, error) {
+	activity.GetLogger(ctx).Info("Adding Deployment to DeploymentPlan", "request", req)
+
+	resp, err := c.client.AddDeployment(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to add Deployment to DeploymentPlan", "error", err)
+		return nil, fmt.Errorf("failed to add Deployment to DeploymentPlan: %w", err)
+	}
+
+	return resp, nil
+}
+
+// UpdateDeploymentStatus updates the status of a deployment in a DeploymentPlan.
+func (c *DeploymentPlanActivities) UpdateDeploymentStatus(ctx context.Context, req *mrdspb.UpdateDeploymentStatusRequest) (*mrdspb.UpdateDeploymentPlanResponse, error) {
+	activity.GetLogger(ctx).Info("Updating Deployment status in DeploymentPlan", "request", req)
+
+	resp, err := c.client.UpdateDeploymentStatus(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update Deployment status in DeploymentPlan", "error", err)
+		return nil, fmt.Errorf("failed to update Deployment status in DeploymentPlan: %w", err)
 	}
 
 	return resp, nil

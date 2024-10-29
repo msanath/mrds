@@ -19,19 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DeploymentPlans_Create_FullMethodName        = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/Create"
-	DeploymentPlans_GetByMetadata_FullMethodName = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByMetadata"
-	DeploymentPlans_GetByName_FullMethodName     = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByName"
-	DeploymentPlans_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/UpdateStatus"
-	DeploymentPlans_List_FullMethodName          = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/List"
-	DeploymentPlans_Delete_FullMethodName        = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/Delete"
+	DeploymentPlans_Create_FullMethodName                 = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/Create"
+	DeploymentPlans_GetByMetadata_FullMethodName          = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByMetadata"
+	DeploymentPlans_GetByName_FullMethodName              = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByName"
+	DeploymentPlans_UpdateStatus_FullMethodName           = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/UpdateStatus"
+	DeploymentPlans_List_FullMethodName                   = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/List"
+	DeploymentPlans_Delete_FullMethodName                 = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/Delete"
+	DeploymentPlans_AddDeployment_FullMethodName          = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/AddDeployment"
+	DeploymentPlans_UpdateDeploymentStatus_FullMethodName = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/UpdateDeploymentStatus"
 )
 
 // DeploymentPlansClient is the client API for DeploymentPlans service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// Service definition for managing DeploymentPlan records.
 type DeploymentPlansClient interface {
 	// Create a new DeploymentPlan.
 	Create(ctx context.Context, in *CreateDeploymentPlanRequest, opts ...grpc.CallOption) (*CreateDeploymentPlanResponse, error)
@@ -45,6 +45,10 @@ type DeploymentPlansClient interface {
 	List(ctx context.Context, in *ListDeploymentPlanRequest, opts ...grpc.CallOption) (*ListDeploymentPlanResponse, error)
 	// Delete a DeploymentPlan by its metadata.
 	Delete(ctx context.Context, in *DeleteDeploymentPlanRequest, opts ...grpc.CallOption) (*DeleteDeploymentPlanResponse, error)
+	// Add a Deployment to an existing DeploymentPlan.
+	AddDeployment(ctx context.Context, in *AddDeploymentRequest, opts ...grpc.CallOption) (*UpdateDeploymentPlanResponse, error)
+	// Update the status of an existing Deployment.
+	UpdateDeploymentStatus(ctx context.Context, in *UpdateDeploymentStatusRequest, opts ...grpc.CallOption) (*UpdateDeploymentPlanResponse, error)
 }
 
 type deploymentPlansClient struct {
@@ -115,11 +119,29 @@ func (c *deploymentPlansClient) Delete(ctx context.Context, in *DeleteDeployment
 	return out, nil
 }
 
+func (c *deploymentPlansClient) AddDeployment(ctx context.Context, in *AddDeploymentRequest, opts ...grpc.CallOption) (*UpdateDeploymentPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateDeploymentPlanResponse)
+	err := c.cc.Invoke(ctx, DeploymentPlans_AddDeployment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *deploymentPlansClient) UpdateDeploymentStatus(ctx context.Context, in *UpdateDeploymentStatusRequest, opts ...grpc.CallOption) (*UpdateDeploymentPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateDeploymentPlanResponse)
+	err := c.cc.Invoke(ctx, DeploymentPlans_UpdateDeploymentStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeploymentPlansServer is the server API for DeploymentPlans service.
 // All implementations must embed UnimplementedDeploymentPlansServer
 // for forward compatibility.
-//
-// Service definition for managing DeploymentPlan records.
 type DeploymentPlansServer interface {
 	// Create a new DeploymentPlan.
 	Create(context.Context, *CreateDeploymentPlanRequest) (*CreateDeploymentPlanResponse, error)
@@ -133,6 +155,10 @@ type DeploymentPlansServer interface {
 	List(context.Context, *ListDeploymentPlanRequest) (*ListDeploymentPlanResponse, error)
 	// Delete a DeploymentPlan by its metadata.
 	Delete(context.Context, *DeleteDeploymentPlanRequest) (*DeleteDeploymentPlanResponse, error)
+	// Add a Deployment to an existing DeploymentPlan.
+	AddDeployment(context.Context, *AddDeploymentRequest) (*UpdateDeploymentPlanResponse, error)
+	// Update the status of an existing Deployment.
+	UpdateDeploymentStatus(context.Context, *UpdateDeploymentStatusRequest) (*UpdateDeploymentPlanResponse, error)
 	mustEmbedUnimplementedDeploymentPlansServer()
 }
 
@@ -160,6 +186,12 @@ func (UnimplementedDeploymentPlansServer) List(context.Context, *ListDeploymentP
 }
 func (UnimplementedDeploymentPlansServer) Delete(context.Context, *DeleteDeploymentPlanRequest) (*DeleteDeploymentPlanResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedDeploymentPlansServer) AddDeployment(context.Context, *AddDeploymentRequest) (*UpdateDeploymentPlanResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDeployment not implemented")
+}
+func (UnimplementedDeploymentPlansServer) UpdateDeploymentStatus(context.Context, *UpdateDeploymentStatusRequest) (*UpdateDeploymentPlanResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDeploymentStatus not implemented")
 }
 func (UnimplementedDeploymentPlansServer) mustEmbedUnimplementedDeploymentPlansServer() {}
 func (UnimplementedDeploymentPlansServer) testEmbeddedByValue()                         {}
@@ -290,6 +322,42 @@ func _DeploymentPlans_Delete_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DeploymentPlans_AddDeployment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddDeploymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeploymentPlansServer).AddDeployment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeploymentPlans_AddDeployment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeploymentPlansServer).AddDeployment(ctx, req.(*AddDeploymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DeploymentPlans_UpdateDeploymentStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDeploymentStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeploymentPlansServer).UpdateDeploymentStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DeploymentPlans_UpdateDeploymentStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeploymentPlansServer).UpdateDeploymentStatus(ctx, req.(*UpdateDeploymentStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DeploymentPlans_ServiceDesc is the grpc.ServiceDesc for DeploymentPlans service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -320,6 +388,14 @@ var DeploymentPlans_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _DeploymentPlans_Delete_Handler,
+		},
+		{
+			MethodName: "AddDeployment",
+			Handler:    _DeploymentPlans_AddDeployment_Handler,
+		},
+		{
+			MethodName: "UpdateDeploymentStatus",
+			Handler:    _DeploymentPlans_UpdateDeploymentStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
