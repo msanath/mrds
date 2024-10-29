@@ -27,6 +27,9 @@ type Repository interface {
 	InsertDisruption(context.Context, core.Metadata, NodeDisruption) error
 	DeleteDisruption(ctx context.Context, metadata core.Metadata, disruptionID string) error
 	UpdateDisruptionStatus(ctx context.Context, metadata core.Metadata, disruptionID string, status NodeDisruptionStatus) error
+
+	InsertCapability(ctx context.Context, metadata core.Metadata, capabilityID string) error
+	DeleteCapability(ctx context.Context, metadata core.Metadata, capabilityID string) error
 }
 
 // NewLedger creates a new Ledger instance.
@@ -79,6 +82,7 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 			Cores:  req.TotalResources.Cores - req.SystemReservedResources.Cores,
 			Memory: req.TotalResources.Memory - req.SystemReservedResources.Memory,
 		},
+		CapabilityIDs: req.CapabilityIDs,
 	}
 
 	err := l.repo.Insert(ctx, rec)
@@ -262,6 +266,12 @@ func (l *ledger) AddDisruption(ctx context.Context, req *AddDisruptionRequest) (
 			"Disruption ID is required to add a disruption",
 		)
 	}
+	if req.Disruption.Status.State != DisruptionStateScheduled {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption must be in scheduled state to add",
+		)
+	}
 
 	err := l.repo.InsertDisruption(ctx, req.Metadata, req.Disruption)
 	if err != nil {
@@ -281,6 +291,11 @@ func (l *ledger) AddDisruption(ctx context.Context, req *AddDisruptionRequest) (
 	}, nil
 }
 
+var validDisruptionStateTransitions = map[DisruptionState][]DisruptionState{
+	DisruptionStateScheduled: {DisruptionStateApproved, DisruptionStateCompleted},
+	DisruptionStateApproved:  {DisruptionStateCompleted},
+}
+
 // UpdateDisruptionStatus updates the status of a disruption on a Node.
 func (l *ledger) UpdateDisruptionStatus(ctx context.Context, req *UpdateDisruptionStatusRequest) (*UpdateResponse, error) {
 	// validate the request
@@ -297,7 +312,49 @@ func (l *ledger) UpdateDisruptionStatus(ctx context.Context, req *UpdateDisrupti
 		)
 	}
 
-	err := l.repo.UpdateDisruptionStatus(ctx, req.Metadata, req.DisruptionID, req.Status)
+	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	if err != nil {
+		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
+			return nil, ledgererrors.NewLedgerError(
+				ledgererrors.ErrRecordInsertConflict,
+				"Either record does not exist or version mismatch resulted in conflict. Check and retry.",
+			)
+		}
+	}
+	found := false
+	for _, existingDisruption := range existingRecord.Disruptions {
+		if existingDisruption.ID == req.DisruptionID {
+			found = true
+			validStates, ok := validDisruptionStateTransitions[existingDisruption.Status.State]
+			if !ok {
+				return nil, ledgererrors.NewLedgerError(
+					ledgererrors.ErrRequestInvalid,
+					fmt.Sprintf("Invalid state transition from %s to %s", existingRecord.Status.State, req.Status.State),
+				)
+			}
+			var valid bool
+			for _, state := range validStates {
+				if state == req.Status.State {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return nil, ledgererrors.NewLedgerError(
+					ledgererrors.ErrRequestInvalid,
+					fmt.Sprintf("Invalid state transition from %s to %s", existingRecord.Status.State, req.Status.State),
+				)
+			}
+		}
+	}
+	if !found {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption not found",
+		)
+	}
+
+	err = l.repo.UpdateDisruptionStatus(ctx, req.Metadata, req.DisruptionID, req.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -330,8 +387,103 @@ func (l *ledger) RemoveDisruption(ctx context.Context, req *RemoveDisruptionRequ
 			"Disruption ID is required to remove a disruption",
 		)
 	}
+	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	if err != nil {
+		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
+			return nil, ledgererrors.NewLedgerError(
+				ledgererrors.ErrRecordInsertConflict,
+				"Either record does not exist or version mismatch resulted in conflict. Check and retry.",
+			)
+		}
+	}
+	found := false
+	for _, existingDisruption := range existingRecord.Disruptions {
+		if existingDisruption.ID == req.DisruptionID {
+			found = true
+			if existingDisruption.Status.State != DisruptionStateCompleted {
+				return nil, ledgererrors.NewLedgerError(
+					ledgererrors.ErrRequestInvalid,
+					"Disruption must be in completed state to remove",
+				)
+			}
+		}
+	}
+	if !found {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Disruption not found",
+		)
+	}
 
-	err := l.repo.DeleteDisruption(ctx, req.Metadata, req.DisruptionID)
+	err = l.repo.DeleteDisruption(ctx, req.Metadata, req.DisruptionID)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
+		ID:      req.Metadata.ID,
+		Version: req.Metadata.Version + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
+}
+
+// AddCapability adds a capability to a Node.
+func (l *ledger) AddCapability(ctx context.Context, req *AddCapabilityRequest) (*UpdateResponse, error) {
+	// validate the request
+	if req.Metadata.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"ID missing. ID is required to add a capability",
+		)
+	}
+	if req.CapabilityID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Capability ID is required to add a capability",
+		)
+	}
+
+	err := l.repo.InsertCapability(ctx, req.Metadata, req.CapabilityID)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
+		ID:      req.Metadata.ID,
+		Version: req.Metadata.Version + 1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
+}
+
+// RemoveCapability removes a capability from a Node.
+func (l *ledger) RemoveCapability(ctx context.Context, req *RemoveCapabilityRequest) (*UpdateResponse, error) {
+	// validate the request
+	if req.Metadata.ID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"ID missing. ID is required to remove a capability",
+		)
+	}
+	if req.CapabilityID == "" {
+		return nil, ledgererrors.NewLedgerError(
+			ledgererrors.ErrRequestInvalid,
+			"Capability ID is required to remove a capability",
+		)
+	}
+
+	err := l.repo.DeleteCapability(ctx, req.Metadata, req.CapabilityID)
 	if err != nil {
 		return nil, err
 	}

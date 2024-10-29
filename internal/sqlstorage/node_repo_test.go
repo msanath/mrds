@@ -54,6 +54,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 				StorageCapacity: 200,
 			},
 		},
+		CapabilityIDs: []string{"capability-1", "capability-2"},
 	}
 	repo := storage.Node
 	ctx := context.Background()
@@ -81,6 +82,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 		require.Equal(t, testRecord.SystemReservedResources, receivedRecord.SystemReservedResources)
 		require.Equal(t, testRecord.RemainingResources, receivedRecord.RemainingResources)
 		require.ElementsMatch(t, testRecord.LocalVolumes, receivedRecord.LocalVolumes)
+		require.ElementsMatch(t, testRecord.CapabilityIDs, receivedRecord.CapabilityIDs)
 	})
 
 	t.Run("Get By Metadata failure", func(t *testing.T) {
@@ -96,7 +98,16 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	t.Run("Get By Name Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByName(ctx, testRecord.Name)
 		require.NoError(t, err)
+		require.Equal(t, testRecord.Metadata, receivedRecord.Metadata)
 		require.Equal(t, testRecord.Name, receivedRecord.Name)
+		require.Equal(t, testRecord.Status, receivedRecord.Status)
+		require.Equal(t, testRecord.UpdateDomain, receivedRecord.UpdateDomain)
+		require.Equal(t, testRecord.TotalResources, receivedRecord.TotalResources)
+		require.Equal(t, testRecord.SystemReservedResources, receivedRecord.SystemReservedResources)
+		require.Equal(t, testRecord.RemainingResources, receivedRecord.RemainingResources)
+		require.ElementsMatch(t, testRecord.LocalVolumes, receivedRecord.LocalVolumes)
+		require.ElementsMatch(t, testRecord.CapabilityIDs, receivedRecord.CapabilityIDs)
+
 	})
 
 	t.Run("Get By Name Failure", func(t *testing.T) {
@@ -154,6 +165,29 @@ func TestNodeRecordLifecycle(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, updatedRecord.Disruptions, 1)
 		require.Equal(t, node.DisruptionStateApproved, updatedRecord.Disruptions[0].Status.State)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Add capability", func(t *testing.T) {
+		capability := "capability-3"
+		err = repo.InsertCapability(ctx, testRecord.Metadata, capability)
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Contains(t, updatedRecord.CapabilityIDs, capability)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Delete capability", func(t *testing.T) {
+		err := repo.DeleteCapability(ctx, testRecord.Metadata, "capability-3")
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.NotContains(t, updatedRecord.CapabilityIDs, "capability-3")
 		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
 		testRecord = updatedRecord
 	})

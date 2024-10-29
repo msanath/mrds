@@ -19,8 +19,9 @@ type NodeRecord struct {
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
 	RemainingResources      Resources // RemainingResources is the resources available for application use.
 
-	LocalVolumes []NodeLocalVolume // LocalVolumes is a list of local volumes attached to the Node.
-	Disruptions  []NodeDisruption  // Disruptions is a list of disruptions that are scheduled or approved for the Node.
+	LocalVolumes  []NodeLocalVolume // LocalVolumes is a list of local volumes attached to the Node.
+	CapabilityIDs []string          // Capabilities is a list of capabilities that the Node has.
+	Disruptions   []NodeDisruption  // Disruptions is a list of disruptions that are scheduled or approved for the Node.
 }
 
 type Resources struct {
@@ -109,6 +110,9 @@ type Ledger interface {
 	AddDisruption(context.Context, *AddDisruptionRequest) (*UpdateResponse, error)
 	UpdateDisruptionStatus(context.Context, *UpdateDisruptionStatusRequest) (*UpdateResponse, error)
 	RemoveDisruption(context.Context, *RemoveDisruptionRequest) (*UpdateResponse, error)
+
+	AddCapability(context.Context, *AddCapabilityRequest) (*UpdateResponse, error)
+	RemoveCapability(context.Context, *RemoveCapabilityRequest) (*UpdateResponse, error)
 }
 
 // CreateRequest represents the Node creation request.
@@ -117,6 +121,7 @@ type CreateRequest struct {
 	UpdateDomain            string    // UpdateDomain is the update domain of the Node.
 	TotalResources          Resources // TotalResources is the total resources available on the Node.
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.
+	CapabilityIDs           []string  // Capabilities is a list of capabilities that the Node has.
 }
 
 // CreateResponse represents the response after creating a new Node.
@@ -190,4 +195,14 @@ type UpdateDisruptionStatusRequest struct {
 type RemoveDisruptionRequest struct {
 	Metadata     core.Metadata
 	DisruptionID string
+}
+
+type AddCapabilityRequest struct {
+	Metadata     core.Metadata
+	CapabilityID string
+}
+
+type RemoveCapabilityRequest struct {
+	Metadata     core.Metadata
+	CapabilityID string
 }

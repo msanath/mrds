@@ -15,6 +15,7 @@ type nodeStorage struct {
 	simplesql.Database
 	nodeTable            *tables.NodeTable
 	nodeLocalVolumeTable *tables.NodeLocalVolumeTable
+	nodeCapabilityTable  *tables.NodeCapabilityTable
 	nodeDisruptionTable  *tables.NodeDisruptionTable
 }
 
@@ -104,12 +105,24 @@ func nodeLocalVolumeRowToRecord(row tables.NodeLocalVolumeRow) node.NodeLocalVol
 	}
 }
 
+func nodeCapabilityRecordToRow(nodeID string, id string) tables.NodeCapabilityRow {
+	return tables.NodeCapabilityRow{
+		NodeID:       nodeID,
+		CapabilityID: id,
+	}
+}
+
+func nodeCapabilityRowToRecord(row tables.NodeCapabilityRow) string {
+	return row.CapabilityID
+}
+
 // newNodeStorage creates a new storage instance satisfying the NodeRepository interface
 func newNodeStorage(db simplesql.Database) node.Repository {
 	return &nodeStorage{
 		Database:             db,
 		nodeTable:            tables.NewNodeTable(db),
 		nodeLocalVolumeTable: tables.NewNodeLocalVolumeTable(db),
+		nodeCapabilityTable:  tables.NewNodeCapabilityTable(db),
 		nodeDisruptionTable:  tables.NewNodeDisruptionTable(db),
 	}
 }
@@ -128,6 +141,13 @@ func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error 
 
 	for _, localVolume := range record.LocalVolumes {
 		err = s.nodeLocalVolumeTable.Insert(ctx, tx, nodeLocalVolumeRecordToRow(record.Metadata.ID, localVolume))
+		if err != nil {
+			return errHandler(err)
+		}
+	}
+
+	for _, capabilityID := range record.CapabilityIDs {
+		err = s.nodeCapabilityTable.Insert(ctx, tx, nodeCapabilityRecordToRow(record.Metadata.ID, capabilityID))
 		if err != nil {
 			return errHandler(err)
 		}
@@ -169,6 +189,17 @@ func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata)
 		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
 	}
 
+	// Get the corresponding capabilityRows
+	capabilityRows, err := s.nodeCapabilityTable.List(ctx, tables.NodeCapabilityTableSelectFilters{
+		NodeIDIn: []string{metadata.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	for _, capability := range capabilityRows {
+		nodeRecord.CapabilityIDs = append(nodeRecord.CapabilityIDs, nodeCapabilityRowToRecord(capability))
+	}
+
 	return nodeRecord, nil
 }
 
@@ -199,6 +230,17 @@ func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.Node
 	}
 	for _, volume := range volumeRows {
 		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
+	}
+
+	// Get the corresponding capabilityRows
+	capabilityRows, err := s.nodeCapabilityTable.List(ctx, tables.NodeCapabilityTableSelectFilters{
+		NodeIDIn: []string{nodeRecord.Metadata.ID},
+	})
+	if err != nil {
+		return node.NodeRecord{}, errHandler(err)
+	}
+	for _, capability := range capabilityRows {
+		nodeRecord.CapabilityIDs = append(nodeRecord.CapabilityIDs, nodeCapabilityRowToRecord(capability))
 	}
 	return nodeRecord, nil
 }
@@ -288,11 +330,24 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 		volumeMap[volume.NodeID] = append(volumeMap[volume.NodeID], nodeLocalVolumeRowToRecord(volume))
 	}
 
+	// Get the corresponding capabilityRows
+	capabilityRows, err := s.nodeCapabilityTable.List(ctx, tables.NodeCapabilityTableSelectFilters{
+		NodeIDIn: nodeIDs,
+	})
+	if err != nil {
+		return nil, errHandler(err)
+	}
+	capabilityMap := make(map[string][]string)
+	for _, capability := range capabilityRows {
+		capabilityMap[capability.NodeID] = append(capabilityMap[capability.NodeID], nodeCapabilityRowToRecord(capability))
+	}
+
 	var records []node.NodeRecord
 	for _, row := range rows {
 		record := nodeRowToRecord(row)
 		record.Disruptions = disruptionMap[row.ID]
 		record.LocalVolumes = volumeMap[row.ID]
+		record.CapabilityIDs = capabilityMap[row.ID]
 		records = append(records, record)
 	}
 
@@ -366,6 +421,58 @@ func (s *nodeStorage) UpdateDisruptionStatus(ctx context.Context, nodeMetadata c
 		Message: &message,
 	}
 	err = s.nodeDisruptionTable.Update(ctx, execer, nodeMetadata.ID, disruptionID, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the node record to bump the version.
+	err = s.nodeTable.Update(ctx, execer, nodeMetadata.ID, nodeMetadata.Version, tables.NodeUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
+}
+
+func (s *nodeStorage) InsertCapability(ctx context.Context, nodeMetadata core.Metadata, capabilityID string) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+	err = s.nodeCapabilityTable.Insert(ctx, execer, nodeCapabilityRecordToRow(nodeMetadata.ID, capabilityID))
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the node record to bump the version.
+	err = s.nodeTable.Update(ctx, execer, nodeMetadata.ID, nodeMetadata.Version, tables.NodeUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
+}
+
+func (s *nodeStorage) DeleteCapability(ctx context.Context, nodeMetadata core.Metadata, capabilityID string) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+	err = s.nodeCapabilityTable.Delete(ctx, execer, nodeMetadata.ID, capabilityID)
 	if err != nil {
 		return errHandler(err)
 	}

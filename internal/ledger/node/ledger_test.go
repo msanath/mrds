@@ -3,6 +3,7 @@ package node_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/msanath/mrds/internal/ledger/core"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
@@ -30,6 +31,7 @@ func TestLedgerCreate(t *testing.T) {
 				Cores:  4,
 				Memory: 32,
 			},
+			CapabilityIDs: []string{"test-capability", "test-capability-1"},
 		}
 		resp, err := l.Create(context.Background(), req)
 
@@ -39,6 +41,12 @@ func TestLedgerCreate(t *testing.T) {
 		require.NotEmpty(t, resp.Record.Metadata.ID)
 		require.Equal(t, uint64(0), resp.Record.Metadata.Version)
 		require.Equal(t, node.NodeStateUnallocated, resp.Record.Status.State)
+		require.Equal(t, "test-domain", resp.Record.UpdateDomain)
+		require.Equal(t, uint32(64), resp.Record.TotalResources.Cores)
+		require.Equal(t, uint32(512), resp.Record.TotalResources.Memory)
+		require.Equal(t, uint32(4), resp.Record.SystemReservedResources.Cores)
+		require.Equal(t, uint32(32), resp.Record.SystemReservedResources.Memory)
+		require.ElementsMatch(t, []string{"test-capability", "test-capability-1"}, resp.Record.CapabilityIDs)
 	})
 
 	t.Run("Create Failures", func(t *testing.T) {
@@ -125,6 +133,7 @@ func TestLedgerGetByMetadata(t *testing.T) {
 			Cores:  4,
 			Memory: 32,
 		},
+		CapabilityIDs: []string{"test-capability", "test-capability-1"},
 	}
 	createResp, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
@@ -135,6 +144,12 @@ func TestLedgerGetByMetadata(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "test-node", resp.Record.Name)
+		require.Equal(t, "test-domain", resp.Record.UpdateDomain)
+		require.Equal(t, uint32(64), resp.Record.TotalResources.Cores)
+		require.Equal(t, uint32(512), resp.Record.TotalResources.Memory)
+		require.Equal(t, uint32(4), resp.Record.SystemReservedResources.Cores)
+		require.Equal(t, uint32(32), resp.Record.SystemReservedResources.Memory)
+		require.ElementsMatch(t, []string{"test-capability", "test-capability-1"}, resp.Record.CapabilityIDs)
 	})
 
 	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
@@ -171,6 +186,7 @@ func TestLedgerGetByName(t *testing.T) {
 			Cores:  4,
 			Memory: 32,
 		},
+		CapabilityIDs: []string{"test-capability", "test-capability-1"},
 	}
 	_, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
@@ -181,6 +197,12 @@ func TestLedgerGetByName(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "test-node", resp.Record.Name)
+		require.Equal(t, "test-domain", resp.Record.UpdateDomain)
+		require.Equal(t, uint32(64), resp.Record.TotalResources.Cores)
+		require.Equal(t, uint32(512), resp.Record.TotalResources.Memory)
+		require.Equal(t, uint32(4), resp.Record.SystemReservedResources.Cores)
+		require.Equal(t, uint32(32), resp.Record.SystemReservedResources.Memory)
+		require.ElementsMatch(t, []string{"test-capability", "test-capability-1"}, resp.Record.CapabilityIDs)
 	})
 
 	t.Run("GetByName InvalidName Failure", func(t *testing.T) {
@@ -349,4 +371,129 @@ func TestLedgerDelete(t *testing.T) {
 	assert.Error(t, err)
 	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 	require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
+}
+
+func TestDisruption(t *testing.T) {
+	storage := test.TestSQLStorage(t)
+	l := node.NewLedger(storage.Node)
+
+	req := &node.CreateRequest{
+		Name:         "test-node",
+		UpdateDomain: "test-domain",
+		TotalResources: node.Resources{
+			Cores:  64,
+			Memory: 512,
+		},
+		SystemReservedResources: node.Resources{
+			Cores:  4,
+			Memory: 32,
+		},
+	}
+	createResp, err := l.Create(context.Background(), req)
+	require.NoError(t, err)
+	updatedRecord := createResp.Record
+	t.Run("AddDisruption Success", func(t *testing.T) {
+		disruptionReq := &node.AddDisruptionRequest{
+			Metadata: createResp.Record.Metadata,
+			Disruption: node.NodeDisruption{
+				StartTime: time.Now(),
+				Status: node.NodeDisruptionStatus{
+					State:   node.DisruptionStateScheduled,
+					Message: "Disruption is scheduled",
+				},
+				ID: "test-disruption",
+			},
+		}
+
+		resp, err := l.AddDisruption(context.Background(), disruptionReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.Disruptions, 1)
+		require.WithinDuration(t, time.Now(), resp.Record.Disruptions[0].StartTime, time.Second)
+		require.Equal(t, node.DisruptionStateScheduled, resp.Record.Disruptions[0].Status.State)
+		updatedRecord = resp.Record
+	})
+
+	t.Run("UpdateDisruptionStatus Success", func(t *testing.T) {
+		updateReq := &node.UpdateDisruptionStatusRequest{
+			Metadata:     updatedRecord.Metadata,
+			DisruptionID: "test-disruption",
+			Status: node.NodeDisruptionStatus{
+				State:   node.DisruptionStateCompleted,
+				Message: "Disruption is completed",
+			},
+		}
+
+		resp, err := l.UpdateDisruptionStatus(context.Background(), updateReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.Disruptions, 1)
+		require.Equal(t, node.DisruptionStateCompleted, resp.Record.Disruptions[0].Status.State)
+		updatedRecord = resp.Record
+	})
+
+	t.Run("RemoveDisruption Success", func(t *testing.T) {
+		removeReq := &node.RemoveDisruptionRequest{
+			Metadata:     updatedRecord.Metadata,
+			DisruptionID: "test-disruption",
+		}
+
+		resp, err := l.RemoveDisruption(context.Background(), removeReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Empty(t, resp.Record.Disruptions)
+	})
+}
+
+func TestCapability(t *testing.T) {
+	storage := test.TestSQLStorage(t)
+	l := node.NewLedger(storage.Node)
+
+	req := &node.CreateRequest{
+		Name:         "test-node",
+		UpdateDomain: "test-domain",
+		TotalResources: node.Resources{
+			Cores:  64,
+			Memory: 512,
+		},
+		SystemReservedResources: node.Resources{
+			Cores:  4,
+			Memory: 32,
+		},
+		CapabilityIDs: []string{"test-capability", "test-capability-1"},
+	}
+	createResp, err := l.Create(context.Background(), req)
+	require.NoError(t, err)
+	updatedRecord := createResp.Record
+	t.Run("AddCapability Success", func(t *testing.T) {
+		capabilityReq := &node.AddCapabilityRequest{
+			Metadata:     createResp.Record.Metadata,
+			CapabilityID: "test-capability-2",
+		}
+
+		resp, err := l.AddCapability(context.Background(), capabilityReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.CapabilityIDs, 3)
+		require.ElementsMatch(t, []string{"test-capability", "test-capability-1", "test-capability-2"}, resp.Record.CapabilityIDs)
+		updatedRecord = resp.Record
+	})
+
+	t.Run("RemoveCapability Success", func(t *testing.T) {
+		removeReq := &node.RemoveCapabilityRequest{
+			Metadata:     updatedRecord.Metadata,
+			CapabilityID: "test-capability-1",
+		}
+
+		resp, err := l.RemoveCapability(context.Background(), removeReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.CapabilityIDs, 2)
+		require.ElementsMatch(t, []string{"test-capability", "test-capability-2"}, resp.Record.CapabilityIDs)
+	})
 }
