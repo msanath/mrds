@@ -11,9 +11,11 @@ import (
 	"github.com/msanath/mrds/pkg/grpcservers"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
-	"github.com/msanath/mrds/internal/ledger/deployment"
+
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
 	"github.com/msanath/mrds/internal/ledger/node"
+
 	// ++ledgerbuilder:Imports
 
 	"github.com/msanath/gondolf/pkg/simplesql/test"
@@ -62,16 +64,16 @@ func NewTestServer() (*TestServer, error) {
 		grpcservers.NewNodeService(nodeLedger),
 	)
 
-	deploymentLedger := deployment.NewLedger(storage.Deployment)
-	mrdspb.RegisterDeploymentsServer(
-		gServer,
-		grpcservers.NewDeploymentService(deploymentLedger),
-	)
-
 	metaInstanceLedger := metainstance.NewLedger(storage.MetaInstance)
 	mrdspb.RegisterMetaInstancesServer(
 		gServer,
 		grpcservers.NewMetaInstanceService(metaInstanceLedger),
+	)
+
+	deploymentPlanLedger := deploymentplan.NewLedger(storage.DeploymentPlan)
+	mrdspb.RegisterDeploymentPlansServer(
+		gServer,
+		grpcservers.NewDeploymentPlanService(deploymentPlanLedger),
 	)
 	// ++ledgerbuilder:TestServerRegister
 

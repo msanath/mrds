@@ -1,3 +1,4 @@
+
 package tables
 
 import (
@@ -8,11 +9,11 @@ import (
 	"github.com/msanath/gondolf/pkg/simplesql"
 )
 
-var deploymentTableMigrations = []simplesql.Migration{
+var deploymentPlanTableMigrations = []simplesql.Migration{
 	{
 		Version: 4, // Update the version number sequentially.
 		Up: `
-			CREATE TABLE deployment (
+			CREATE TABLE deployment_plan (
 				id VARCHAR(255) NOT NULL PRIMARY KEY,
 				version BIGINT NOT NULL,
 				name VARCHAR(255) NOT NULL,
@@ -23,12 +24,12 @@ var deploymentTableMigrations = []simplesql.Migration{
 			);
 		`,
 		Down: `
-				DROP TABLE IF EXISTS deployment;
+				DROP TABLE IF EXISTS deployment_plan;
 			`,
 	},
 }
 
-type DeploymentRow struct {
+type DeploymentPlanRow struct {
 	ID        string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version   uint64 `db:"version" orm:"op=create,update"`
 	Name      string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
@@ -37,12 +38,12 @@ type DeploymentRow struct {
 	Message   string `db:"message" orm:"op=create,update"`
 }
 
-type DeploymentTableUpdateFields struct {
+type DeploymentPlanTableUpdateFields struct {
 	State   *string `db:"state"`
 	Message *string `db:"message"`
 }
 
-type DeploymentTableSelectFilters struct {
+type DeploymentPlanTableSelectFilters struct {
 	IDIn       []string `db:"id:in"`        // IN condition
 	NameIn     []string `db:"name:in"`      // IN condition
 	StateIn    []string `db:"state:in"`     // IN condition
@@ -55,54 +56,54 @@ type DeploymentTableSelectFilters struct {
 	Limit          uint32 `db:"limit"`
 }
 
-const deploymentTableName = "deployment"
+const deploymentPlanTableName = "deployment_plan"
 
-type DeploymentTable struct {
+type DeploymentPlanTable struct {
 	simplesql.Database
 	tableName string
 }
 
-func NewDeploymentTable(db simplesql.Database) *DeploymentTable {
-	return &DeploymentTable{
+func NewDeploymentPlanTable(db simplesql.Database) *DeploymentPlanTable {
+	return &DeploymentPlanTable{
 		Database:  db,
-		tableName: deploymentTableName,
+		tableName: deploymentPlanTableName,
 	}
 }
 
-func (s *DeploymentTable) Insert(ctx context.Context, execer sqlx.ExecerContext, row DeploymentRow) error {
+func (s *DeploymentPlanTable) Insert(ctx context.Context, execer sqlx.ExecerContext, row DeploymentPlanRow) error {
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *DeploymentTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (DeploymentRow, error) {
-	var row DeploymentRow
+func (s *DeploymentPlanTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (DeploymentPlanRow, error) {
+	var row DeploymentPlanRow
 	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
 	if err != nil {
-		return DeploymentRow{}, err
+		return DeploymentPlanRow{}, err
 	}
 	return row, nil
 }
 
-func (s *DeploymentTable) GetByName(ctx context.Context, name string) (DeploymentRow, error) {
-	var row DeploymentRow
+func (s *DeploymentPlanTable) GetByName(ctx context.Context, name string) (DeploymentPlanRow, error) {
+	var row DeploymentPlanRow
 	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
 	if err != nil {
-		return DeploymentRow{}, err
+		return DeploymentPlanRow{}, err
 	}
 	return row, nil
 }
 
-func (s *DeploymentTable) Update(
-	ctx context.Context, execer sqlx.ExecerContext, id string, version uint64, updateFields DeploymentTableUpdateFields,
+func (s *DeploymentPlanTable) Update(
+	ctx context.Context, execer sqlx.ExecerContext, id string, version uint64, updateFields DeploymentPlanTableUpdateFields,
 ) error {
 	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, updateFields)
 }
 
-func (s *DeploymentTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
+func (s *DeploymentPlanTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
 	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
 }
 
-func (s *DeploymentTable) List(ctx context.Context, filters DeploymentTableSelectFilters) ([]DeploymentRow, error) {
-	var rows []DeploymentRow
+func (s *DeploymentPlanTable) List(ctx context.Context, filters DeploymentPlanTableSelectFilters) ([]DeploymentPlanRow, error) {
+	var rows []DeploymentPlanRow
 	err := s.Database.SelectRows(ctx, s.tableName, filters, &rows)
 	if err != nil {
 		return nil, err

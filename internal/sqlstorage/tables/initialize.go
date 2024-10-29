@@ -8,11 +8,11 @@ func Initialize(simpleDB simplesql.Database) error {
 	schemaMigrations = append(schemaMigrations, clusterTableMigrations...)
 	schemaMigrations = append(schemaMigrations, computeCapabilityTableMigrations...)
 	schemaMigrations = append(schemaMigrations, nodeTableMigrations...)
-	schemaMigrations = append(schemaMigrations, deploymentTableMigrations...)
 	schemaMigrations = append(schemaMigrations, metaInstanceTableMigrations...)
 	schemaMigrations = append(schemaMigrations, nodeDisruptionTableMigrations...)
 schemaMigrations = append(schemaMigrations, nodeLocalVolumeTableMigrations...)
 schemaMigrations = append(schemaMigrations, nodeCapabilityTableMigrations...)
+schemaMigrations = append(schemaMigrations, deploymentPlanTableMigrations...)
 // ++ledgerbuilder:Migrations
 
 	err := simpleDB.ApplyMigrations(schemaMigrations)

@@ -1,3 +1,4 @@
+
 package sqlstorage_test
 
 import (
@@ -5,33 +6,43 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	"github.com/msanath/mrds/internal/ledger/core"
-	"github.com/msanath/mrds/internal/ledger/deployment"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
-	"github.com/msanath/mrds/internal/sqlstorage/test"
+	"github.com/msanath/mrds/internal/sqlstorage"
+
+	"github.com/msanath/gondolf/pkg/simplesql/test"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 )
 
-const deploymentidPrefix = "deployment"
+const deploymentPlanidPrefix = "deploymentplan"
 
-func TestDeploymentRecordLifecycle(t *testing.T) {
-	storage := test.TestSQLStorage(t)
+func TestDeploymentPlanRecordLifecycle(t *testing.T) {
+	db, err := test.NewTestSQLiteDB()
+	require.NoError(t, err)
 
-	testRecord := deployment.DeploymentRecord{
+	storage, err := sqlstorage.NewSQLStorage(db, true)
+	require.NoError(t, err)
+
+	testRecord := deploymentplan.DeploymentPlanRecord{
 		Metadata: core.Metadata{
-			ID:      fmt.Sprintf("%s1", deploymentidPrefix),
+			ID:      fmt.Sprintf("%s1", deploymentPlanidPrefix),
 			Version: 1,
 		},
-		Name: fmt.Sprintf("%s1", deploymentidPrefix),
-		Status: deployment.DeploymentStatus{
-			State:   deployment.DeploymentStateActive,
+		Name: fmt.Sprintf("%s1", deploymentPlanidPrefix),
+		Status: deploymentplan.DeploymentPlanStatus{
+			State:   deploymentplan.DeploymentPlanStateActive,
 			Message: "",
 		},
 	}
-	repo := storage.Deployment
+	repo := storage.DeploymentPlan
 
+	testDeploymentPlanCRUD(t, repo, testRecord)
+}
+
+func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRecord deploymentplan.DeploymentPlanRecord) {
 	ctx := context.Background()
 	var err error
 
@@ -75,7 +86,7 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Update State Success", func(t *testing.T) {
-		status := deployment.DeploymentStatus{
+		status := deploymentplan.DeploymentPlanStatus{
 			State:   "error",
 			Message: "Needs attention",
 		}
@@ -103,15 +114,15 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 		// Create 10 records.
 		for i := range 10 {
 			newRecord := testRecord
-			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", deploymentidPrefix, i+1)
+			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", deploymentPlanidPrefix, i+1)
 			newRecord.Metadata.Version = 0
-			newRecord.Name = fmt.Sprintf("%s-%d", deploymentidPrefix, i+1)
-			newRecord.Status.State = deployment.DeploymentStateActive
-			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", deploymentidPrefix, i+1)
+			newRecord.Name = fmt.Sprintf("%s-%d", deploymentPlanidPrefix, i+1)
+			newRecord.Status.State = deploymentplan.DeploymentPlanStateActive
+			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", deploymentPlanidPrefix, i+1)
 
 			if (i+1)%2 == 0 {
-				newRecord.Status.State = deployment.DeploymentStateInActive
-				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", deploymentidPrefix, i+1)
+				newRecord.Status.State = deploymentplan.DeploymentPlanStateInActive
+				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", deploymentPlanidPrefix, i+1)
 			}
 
 			err = repo.Insert(ctx, newRecord)
@@ -120,7 +131,7 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		records, err := repo.List(ctx, deployment.DeploymentListFilters{})
+		records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{})
 		require.NoError(t, err)
 		require.Len(t, records, 10)
 
@@ -131,25 +142,25 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 		}
 		expectedIDs := []string{}
 		for i := range 10 {
-			expectedIDs = append(expectedIDs, fmt.Sprintf("%s-%d", deploymentidPrefix, i+1))
+			expectedIDs = append(expectedIDs, fmt.Sprintf("%s-%d", deploymentPlanidPrefix, i+1))
 
 		}
 		require.ElementsMatch(t, expectedIDs, receivedIDs)
 		allRecords := records
 
 		t.Run("List Success With Filter", func(t *testing.T) {
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
-				StateIn: []deployment.DeploymentState{deployment.DeploymentStateActive},
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
+				StateIn: []deploymentplan.DeploymentPlanState{deploymentplan.DeploymentPlanStateActive},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, deployment.DeploymentStateActive, record.Status.State)
+				require.Equal(t, deploymentplan.DeploymentPlanStateActive, record.Status.State)
 			}
 		})
 
 		t.Run("List with Names Filter", func(t *testing.T) {
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
 				NameIn: []string{allRecords[0].Name, allRecords[1].Name, allRecords[2].Name},
 			})
 			require.NoError(t, err)
@@ -162,7 +173,7 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 		})
 
 		t.Run("List with Limit", func(t *testing.T) {
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
 				Limit: 3,
 			})
 			require.NoError(t, err)
@@ -173,7 +184,7 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 			err = repo.Delete(ctx, allRecords[0].Metadata)
 			require.NoError(t, err)
 
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
 				IncludeDeleted: true,
 			})
 			require.NoError(t, err)
@@ -181,33 +192,33 @@ func TestDeploymentRecordLifecycle(t *testing.T) {
 		})
 
 		t.Run("List with StateNotIn", func(t *testing.T) {
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
-				StateNotIn: []deployment.DeploymentState{deployment.DeploymentStateActive},
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
+				StateNotIn: []deploymentplan.DeploymentPlanState{deploymentplan.DeploymentPlanStateActive},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, deployment.DeploymentStateInActive, record.Status.State)
+				require.Equal(t, deploymentplan.DeploymentPlanStateInActive, record.Status.State)
 			}
 		})
 
 		t.Run("Update State and check version", func(t *testing.T) {
-			status := deployment.DeploymentStatus{
-				State:   deployment.DeploymentStatePending,
+			status := deploymentplan.DeploymentPlanStatus{
+				State:   deploymentplan.DeploymentPlanStatePending,
 				Message: "Needs attention",
 			}
 
 			err = repo.UpdateState(ctx, allRecords[1].Metadata, status)
 			require.NoError(t, err)
 			ve := uint64(1)
-			records, err := repo.List(ctx, deployment.DeploymentListFilters{
+			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
 				VersionEq: &ve,
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 1)
 
 			ve += 1
-			records, err = repo.List(ctx, deployment.DeploymentListFilters{
+			records, err = repo.List(ctx, deploymentplan.DeploymentPlanListFilters{
 				VersionEq: &ve,
 			})
 			require.NoError(t, err)

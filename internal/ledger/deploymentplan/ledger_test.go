@@ -1,11 +1,12 @@
-package deployment_test
+
+package deploymentplan_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	"github.com/msanath/mrds/internal/ledger/core"
-	"github.com/msanath/mrds/internal/ledger/deployment"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
 
@@ -17,26 +18,26 @@ func TestLedgerCreate(t *testing.T) {
 
 	t.Run("Create Success", func(t *testing.T) {
 		storage := test.TestSQLStorage(t)
-		l := deployment.NewLedger(storage.Deployment)
+		l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-		req := &deployment.CreateRequest{
-			Name: "test-deployment",
+		req := &deploymentplan.CreateRequest{
+			Name: "test-deploymentplan",
 		}
 		resp, err := l.Create(context.Background(), req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, "test-deployment", resp.Record.Name)
+		require.Equal(t, "test-deploymentplan", resp.Record.Name)
 		require.NotEmpty(t, resp.Record.Metadata.ID)
 		require.Equal(t, uint64(0), resp.Record.Metadata.Version)
-		require.Equal(t, deployment.DeploymentStatePending, resp.Record.Status.State)
+		require.Equal(t, deploymentplan.DeploymentPlanStatePending, resp.Record.Status.State)
 	})
 
 	t.Run("Create EmptyName Failure", func(t *testing.T) {
 		storage := test.TestSQLStorage(t)
-		l := deployment.NewLedger(storage.Deployment)
+		l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-		req := &deployment.CreateRequest{
+		req := &deploymentplan.CreateRequest{
 			Name: "", // Empty name
 		}
 		resp, err := l.Create(context.Background(), req)
@@ -50,10 +51,10 @@ func TestLedgerCreate(t *testing.T) {
 
 func TestLedgerGetByMetadata(t *testing.T) {
 	storage := test.TestSQLStorage(t)
-	l := deployment.NewLedger(storage.Deployment)
+	l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-	req := &deployment.CreateRequest{
-		Name: "test-deployment",
+	req := &deploymentplan.CreateRequest{
+		Name: "test-deploymentplan",
 	}
 	createResp, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
@@ -63,7 +64,7 @@ func TestLedgerGetByMetadata(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, "test-deployment", resp.Record.Name)
+		require.Equal(t, "test-deploymentplan", resp.Record.Name)
 	})
 
 	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
@@ -87,20 +88,20 @@ func TestLedgerGetByMetadata(t *testing.T) {
 
 func TestLedgerGetByName(t *testing.T) {
 	storage := test.TestSQLStorage(t)
-	l := deployment.NewLedger(storage.Deployment)
+	l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-	req := &deployment.CreateRequest{
-		Name: "test-deployment",
+	req := &deploymentplan.CreateRequest{
+		Name: "test-deploymentplan",
 	}
 	_, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
 
 	t.Run("GetByName Success", func(t *testing.T) {
-		resp, err := l.GetByName(context.Background(), "test-deployment")
+		resp, err := l.GetByName(context.Background(), "test-deploymentplan")
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, "test-deployment", resp.Record.Name)
+		require.Equal(t, "test-deploymentplan", resp.Record.Name)
 	})
 
 	t.Run("GetByName InvalidName Failure", func(t *testing.T) {
@@ -124,21 +125,21 @@ func TestLedgerGetByName(t *testing.T) {
 
 func TestLedgerUpdateStatus(t *testing.T) {
 	storage := test.TestSQLStorage(t)
-	l := deployment.NewLedger(storage.Deployment)
+	l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-	req := &deployment.CreateRequest{
-		Name: "test-deployment",
+	req := &deploymentplan.CreateRequest{
+		Name: "test-deploymentplan",
 	}
 	createResp, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
 
 	lastUpdatedRecord := createResp.Record
 	t.Run("UpdateStatus Success", func(t *testing.T) {
-		updateReq := &deployment.UpdateStatusRequest{
+		updateReq := &deploymentplan.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
-			Status: deployment.DeploymentStatus{
-				State:   deployment.DeploymentStateInActive,
-				Message: "Deployment is inactive now",
+			Status: deploymentplan.DeploymentPlanStatus{
+				State:   deploymentplan.DeploymentPlanStateInActive,
+				Message: "DeploymentPlan is inactive now",
 			},
 		}
 
@@ -146,15 +147,15 @@ func TestLedgerUpdateStatus(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, deployment.DeploymentStateInActive, resp.Record.Status.State)
+		require.Equal(t, deploymentplan.DeploymentPlanStateInActive, resp.Record.Status.State)
 		lastUpdatedRecord = resp.Record
 	})
 
 	t.Run("UpdateStatus InvalidTransition Failure", func(t *testing.T) {
-		updateReq := &deployment.UpdateStatusRequest{
+		updateReq := &deploymentplan.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
-			Status: deployment.DeploymentStatus{
-				State:   deployment.DeploymentStatePending, // Invalid transition
+			Status: deploymentplan.DeploymentPlanStatus{
+				State:   deploymentplan.DeploymentPlanStatePending, // Invalid transition
 				Message: "Invalid state transition",
 			},
 		}
@@ -168,11 +169,11 @@ func TestLedgerUpdateStatus(t *testing.T) {
 	})
 
 	t.Run("Update conflict Failure", func(t *testing.T) {
-		updateReq := &deployment.UpdateStatusRequest{
+		updateReq := &deploymentplan.UpdateStatusRequest{
 			Metadata: createResp.Record.Metadata, // This is the old metadata. Should cause a conflict.
-			Status: deployment.DeploymentStatus{
-				State:   deployment.DeploymentStateActive,
-				Message: "Deployment is active now",
+			Status: deploymentplan.DeploymentPlanStatus{
+				State:   deploymentplan.DeploymentPlanStateActive,
+				Message: "DeploymentPlan is active now",
 			},
 		}
 
@@ -187,17 +188,17 @@ func TestLedgerUpdateStatus(t *testing.T) {
 
 func TestLedgerList(t *testing.T) {
 	storage := test.TestSQLStorage(t)
-	l := deployment.NewLedger(storage.Deployment)
+	l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-	// Create two Deployments
-	_, err := l.Create(context.Background(), &deployment.CreateRequest{Name: "Deployment1"})
+	// Create two DeploymentPlans
+	_, err := l.Create(context.Background(), &deploymentplan.CreateRequest{Name: "DeploymentPlan1"})
 	assert.NoError(t, err)
 
-	_, err = l.Create(context.Background(), &deployment.CreateRequest{Name: "Deployment2"})
+	_, err = l.Create(context.Background(), &deploymentplan.CreateRequest{Name: "DeploymentPlan2"})
 	assert.NoError(t, err)
 
-	// List the Deployments
-	listReq := &deployment.ListRequest{}
+	// List the DeploymentPlans
+	listReq := &deploymentplan.ListRequest{}
 	resp, err := l.List(context.Background(), listReq)
 
 	assert.NoError(t, err)
@@ -207,17 +208,17 @@ func TestLedgerList(t *testing.T) {
 
 func TestLedgerDelete(t *testing.T) {
 	storage := test.TestSQLStorage(t)
-	l := deployment.NewLedger(storage.Deployment)
+	l := deploymentplan.NewLedger(storage.DeploymentPlan)
 
-	// First, create the Deployment
-	createResp, err := l.Create(context.Background(), &deployment.CreateRequest{Name: "test-deployment"})
+	// First, create the DeploymentPlan
+	createResp, err := l.Create(context.Background(), &deploymentplan.CreateRequest{Name: "test-deploymentplan"})
 	assert.NoError(t, err)
 
-	// Now, delete the Deployment
-	err = l.Delete(context.Background(), &deployment.DeleteRequest{Metadata: createResp.Record.Metadata})
+	// Now, delete the DeploymentPlan
+	err = l.Delete(context.Background(), &deploymentplan.DeleteRequest{Metadata: createResp.Record.Metadata})
 	assert.NoError(t, err)
 
-	// Try to get the Deployment again
+	// Try to get the DeploymentPlan again
 	_, err = l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
 	assert.Error(t, err)
 	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")

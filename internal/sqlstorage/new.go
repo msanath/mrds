@@ -7,12 +7,12 @@ import (
 	"github.com/msanath/gondolf/pkg/simplesql"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
-	"github.com/msanath/mrds/internal/ledger/deployment"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
 	"github.com/msanath/mrds/internal/ledger/node"
 
 	"github.com/msanath/mrds/internal/ledger/cluster"
 
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	// ++ledgerbuilder:Imports
 
 	"github.com/jmoiron/sqlx"
@@ -21,9 +21,9 @@ import (
 type SQLStorage struct {
 	ComputeCapability computecapability.Repository
 	Node              node.Repository
-	Deployment        deployment.Repository
 	MetaInstance      metainstance.Repository
 	Cluster           cluster.Repository
+	DeploymentPlan    deploymentplan.Repository
 	// ++ledgerbuilder:RepositoryInterface
 }
 
@@ -51,8 +51,8 @@ func NewSQLStorage(
 		Cluster:           newClusterStorage(simpleDB),
 		ComputeCapability: newComputeCapabilityStorage(simpleDB),
 		Node:              newNodeStorage(simpleDB),
-		Deployment:        newDeploymentStorage(simpleDB),
 		MetaInstance:      newMetaInstanceStorage(simpleDB),
+		DeploymentPlan:    newDeploymentPlanStorage(simpleDB),
 		// ++ledgerbuilder:RepoInstance
 	}, nil
 }

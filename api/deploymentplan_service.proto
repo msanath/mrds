@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package proto.mrds.ledger.deploymentplan;
+
+import "metadata.proto";
+import "deploymentplan.proto";
+
+option go_package = "/api/mrdspb";
+
+// Service definition for managing DeploymentPlan records.
+service DeploymentPlans {
+    // Create a new DeploymentPlan.
+    rpc Create(CreateDeploymentPlanRequest) returns (CreateDeploymentPlanResponse);
+
+    // Get a DeploymentPlan by its metadata.
+    rpc GetByMetadata(GetDeploymentPlanByMetadataRequest) returns (GetDeploymentPlanResponse);
+
+    // Get a DeploymentPlan by its name.
+    rpc GetByName(GetDeploymentPlanByNameRequest) returns (GetDeploymentPlanResponse);
+
+    // Update the state of an existing DeploymentPlan.
+    rpc UpdateStatus(UpdateDeploymentPlanStatusRequest) returns (UpdateDeploymentPlanResponse);
+
+    // List DeploymentPlans that match the provided filters.
+    rpc List(ListDeploymentPlanRequest) returns (ListDeploymentPlanResponse);
+
+    // Delete a DeploymentPlan by its metadata.
+    rpc Delete(DeleteDeploymentPlanRequest) returns (DeleteDeploymentPlanResponse);
+}
+
+// Request to create a new DeploymentPlan.
+message CreateDeploymentPlanRequest {
+    string name = 1;
+}
+
+// Response after creating a new DeploymentPlan.
+message CreateDeploymentPlanResponse {
+    // The newly created DeploymentPlan record.
+    DeploymentPlan record = 1;
+}
+
+// Request to update the state and message of a DeploymentPlan.
+message UpdateDeploymentPlanStatusRequest {
+    // The metadata of the DeploymentPlan to update.
+    core.Metadata metadata = 1;
+
+    // The new state of the DeploymentPlan.
+    DeploymentPlanStatus status = 2;
+}
+
+// Response after updating the state of a DeploymentPlan.
+message UpdateDeploymentPlanResponse {
+    // The updated DeploymentPlan record.
+    DeploymentPlan record = 1;
+}
+
+message GetDeploymentPlanByMetadataRequest {
+    core.Metadata metadata = 1;
+}
+
+// Request for getting a DeploymentPlan by its name.
+message GetDeploymentPlanByNameRequest {
+    // The name of the DeploymentPlan to get.
+    string name = 1;
+}
+
+// Response after fetching a DeploymentPlan.
+message GetDeploymentPlanResponse {
+    // The DeploymentPlan record that was fetched.
+    DeploymentPlan record = 1;
+}
+
+// Request to list DeploymentPlans with specific filters.
+message ListDeploymentPlanRequest {
+    // IN condition for filtering by IDs.
+    repeated string id_in = 1;
+
+    // IN condition for filtering by Names.
+    repeated string name_in = 2;
+
+    // Greater than or equal condition for filtering by version.
+    uint64 version_gte = 3;
+
+    // Less than or equal condition for filtering by version.
+    uint64 version_lte = 4;
+
+    // Equal condition for filtering by version.
+    uint64 version_eq = 5;
+
+    // IN condition for filtering by state.
+    repeated DeploymentPlanState state_in = 6;
+
+    // NOT IN condition for filtering by state.
+    repeated DeploymentPlanState state_not_in = 7;
+
+    // Whether to include soft-deleted resources in the query.
+    bool include_deleted = 8;
+
+    // Limit the number of results returned.
+    uint32 limit = 9;
+}
+
+// Response for listing DeploymentPlans.
+message ListDeploymentPlanResponse {
+    // The list of DeploymentPlan records that match the query.
+    repeated DeploymentPlan records = 1;
+}
+
+// Request to delete a DeploymentPlan by its metadata.
+message DeleteDeploymentPlanRequest {
+    // The metadata of the DeploymentPlan to delete.
+    core.Metadata metadata = 1;
+}
+
+// Response after deleting a DeploymentPlan.
+message DeleteDeploymentPlanResponse {}

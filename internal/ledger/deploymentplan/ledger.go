@@ -1,4 +1,5 @@
-package deployment
+
+package deploymentplan
 
 import (
 	"context"
@@ -17,12 +18,12 @@ type ledger struct {
 
 // Repository provides the methods that the storage layer must implement to support the ledger.
 type Repository interface {
-	Insert(context.Context, DeploymentRecord) error
-	GetByMetadata(context.Context, core.Metadata) (DeploymentRecord, error)
-	GetByName(context.Context, string) (DeploymentRecord, error)
-	UpdateState(context.Context, core.Metadata, DeploymentStatus) error
+	Insert(context.Context, DeploymentPlanRecord) error
+	GetByMetadata(context.Context, core.Metadata) (DeploymentPlanRecord, error)
+	GetByName(context.Context, string) (DeploymentPlanRecord, error)
+	UpdateState(context.Context, core.Metadata, DeploymentPlanStatus) error
 	Delete(context.Context, core.Metadata) error
-	List(context.Context, DeploymentListFilters) ([]DeploymentRecord, error)
+	List(context.Context, DeploymentPlanListFilters) ([]DeploymentPlanRecord, error)
 }
 
 // NewLedger creates a new Ledger instance.
@@ -30,24 +31,24 @@ func NewLedger(repo Repository) Ledger {
 	return &ledger{repo: repo}
 }
 
-// Create creates a new Deployment.
+// Create creates a new DeploymentPlan.
 func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateResponse, error) {
 	// validate the request
 	if req.Name == "" {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
-			"Deployment name is required",
+			"DeploymentPlan name is required",
 		)
 	}
 
-	rec := DeploymentRecord{
+	rec := DeploymentPlanRecord{
 		Metadata: core.Metadata{
 			ID:      uuid.New().String(),
 			Version: 0,
 		},
 		Name: req.Name,
-		Status: DeploymentStatus{
-			State:   DeploymentStatePending,
+		Status: DeploymentPlanStatus{
+			State:   DeploymentPlanStatePending,
 			Message: "",
 		},
 	}
@@ -62,7 +63,7 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 	}, nil
 }
 
-// GetByMetadata retrieves a Deployment by its metadata.
+// GetByMetadata retrieves a DeploymentPlan by its metadata.
 func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*GetResponse, error) {
 	// validate the request
 	if metadata == nil || metadata.ID == "" {
@@ -82,7 +83,7 @@ func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*G
 	}, nil
 }
 
-// GetByName retrieves a Deployment by its name.
+// GetByName retrieves a DeploymentPlan by its name.
 func (l *ledger) GetByName(ctx context.Context, name string) (*GetResponse, error) {
 	// validate the request
 	if name == "" {
@@ -102,13 +103,13 @@ func (l *ledger) GetByName(ctx context.Context, name string) (*GetResponse, erro
 	}, nil
 }
 
-var validStateTransitions = map[DeploymentState][]DeploymentState{
-	DeploymentStatePending:  {DeploymentStateActive, DeploymentStateInActive},
-	DeploymentStateActive:   {DeploymentStateInActive},
-	DeploymentStateInActive: {DeploymentStateActive},
+var validStateTransitions = map[DeploymentPlanState][]DeploymentPlanState{
+	DeploymentPlanStatePending:  {DeploymentPlanStateActive, DeploymentPlanStateInActive},
+	DeploymentPlanStateActive:   {DeploymentPlanStateInActive},
+	DeploymentPlanStateInActive: {DeploymentPlanStateActive},
 }
 
-// UpdateStatus updates the state and message of an existing Deployment.
+// UpdateStatus updates the state and message of an existing DeploymentPlan.
 func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*UpdateResponse, error) {
 	// validate the request
 	if req.Metadata.ID == "" {
@@ -168,7 +169,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 	}, nil
 }
 
-// List returns a list of Deployments that match the provided filters.
+// List returns a list of DeploymentPlans that match the provided filters.
 func (l *ledger) List(ctx context.Context, req *ListRequest) (*ListResponse, error) {
 	records, err := l.repo.List(ctx, req.Filters)
 	if err != nil {
