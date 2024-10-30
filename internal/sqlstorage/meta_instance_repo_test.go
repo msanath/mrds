@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/msanath/mrds/internal/ledger/core"
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
+	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,6 +21,25 @@ const metaInstanceidPrefix = "metainstance"
 func TestMetaInstanceRecordLifecycle(t *testing.T) {
 	storage := test.TestSQLStorage(t)
 
+	// Create a deployment plan
+	err := storage.DeploymentPlan.Insert(context.Background(), deploymentplan.DeploymentPlanRecord{
+		Metadata: core.Metadata{
+			ID:      "dp1",
+			Version: 1,
+		},
+		Name: "dp1",
+	})
+	require.NoError(t, err)
+
+	// Add a deployment
+	err = storage.DeploymentPlan.InsertDeployment(context.Background(), core.Metadata{
+		ID:      "dp1",
+		Version: 1,
+	}, deploymentplan.Deployment{
+		ID: "d1",
+	})
+	require.NoError(t, err)
+
 	testRecord := metainstance.MetaInstanceRecord{
 		Metadata: core.Metadata{
 			ID:      fmt.Sprintf("%s1", metaInstanceidPrefix),
@@ -26,14 +47,15 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		},
 		Name: fmt.Sprintf("%s1", metaInstanceidPrefix),
 		Status: metainstance.MetaInstanceStatus{
-			State:   metainstance.MetaInstanceStateActive,
+			State:   metainstance.MetaInstanceStateRunning,
 			Message: "",
 		},
+		DeploymentPlanID: "dp1",
+		DeploymentID:     "d1",
 	}
 	repo := storage.MetaInstance
 
 	ctx := context.Background()
-	var err error
 
 	t.Run("Insert Success", func(t *testing.T) {
 		err = repo.Insert(ctx, testRecord)
@@ -49,7 +71,11 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 	t.Run("Get By Metadata Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
 		require.NoError(t, err)
-		require.Equal(t, testRecord, receivedRecord)
+		require.Equal(t, testRecord.Name, receivedRecord.Name)
+		require.Equal(t, testRecord.Status, receivedRecord.Status)
+		require.Equal(t, testRecord.DeploymentPlanID, receivedRecord.DeploymentPlanID)
+		require.Equal(t, testRecord.DeploymentID, receivedRecord.DeploymentID)
+		require.Equal(t, testRecord.Metadata, receivedRecord.Metadata)
 	})
 
 	t.Run("Get By Metadata failure", func(t *testing.T) {
@@ -90,6 +116,137 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		testRecord = updatedRecord
 	})
 
+	t.Run("Add Operation Success", func(t *testing.T) {
+		operation := metainstance.Operation{
+			ID:       "op1",
+			Type:     "create",
+			IntentID: "intent1",
+			Status: metainstance.OperationStatus{
+				State:   metainstance.OperationStatePendingApproval,
+				Message: "Needs attention",
+			},
+		}
+
+		err = repo.InsertOperation(ctx, testRecord.Metadata, operation)
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Operations, 1)
+		require.Equal(t, operation, updatedRecord.Operations[0])
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Add Runtime Instance With invalid node ID Failure", func(t *testing.T) {
+		runtimeInstance := metainstance.RuntimeInstance{
+			ID:       "ri1",
+			NodeID:   "unknown",
+			IsActive: true,
+			Status: metainstance.RuntimeInstanceStatus{
+				State:   metainstance.RuntimeStateRunning,
+				Message: "In progress",
+			},
+		}
+
+		err = repo.InsertRuntimeInstance(ctx, testRecord.Metadata, runtimeInstance)
+		require.Error(t, err)
+		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
+	})
+
+	t.Run("Add Runtime Instance Success", func(t *testing.T) {
+		// Create a node
+		storage.Node.Insert(ctx, node.NodeRecord{
+			Metadata: core.Metadata{
+				ID:      "node1",
+				Version: 1,
+			},
+			Name: "node1",
+			Status: node.NodeStatus{
+				State:   node.NodeStateAllocated,
+				Message: "Node is active",
+			},
+		})
+
+		runtimeInstance := metainstance.RuntimeInstance{
+			ID:       "ri1",
+			NodeID:   "node1",
+			IsActive: true,
+			Status: metainstance.RuntimeInstanceStatus{
+				State:   metainstance.RuntimeStateRunning,
+				Message: "In progress",
+			},
+		}
+
+		err = repo.InsertRuntimeInstance(ctx, testRecord.Metadata, runtimeInstance)
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.RuntimeInstances, 1)
+		require.Equal(t, runtimeInstance, updatedRecord.RuntimeInstances[0])
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Update Runtime Instance Status Success", func(t *testing.T) {
+		err = repo.UpdateRuntimeInstanceStatus(ctx, testRecord.Metadata, "ri1", metainstance.RuntimeInstanceStatus{
+			State:   metainstance.RuntimeStateTerminated,
+			Message: "Is Terminated",
+		})
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.RuntimeInstances, 1)
+		require.Equal(t, metainstance.RuntimeInstanceStatus{
+			State:   metainstance.RuntimeStateTerminated,
+			Message: "Is Terminated",
+		}, updatedRecord.RuntimeInstances[0].Status)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Delete Runtime Instance Success", func(t *testing.T) {
+		err = repo.DeleteRuntimeInstance(ctx, testRecord.Metadata, "ri1")
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.RuntimeInstances, 0)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Operation Status Update Success", func(t *testing.T) {
+		err = repo.UpdateOperationStatus(ctx, testRecord.Metadata, "op1", metainstance.OperationStatus{
+			State:   metainstance.OperationStateSucceeded,
+			Message: "In progress",
+		})
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Operations, 1)
+		require.Equal(t, metainstance.OperationStatus{
+			State:   metainstance.OperationStateSucceeded,
+			Message: "In progress",
+		}, updatedRecord.Operations[0].Status)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
+	t.Run("Operation Delete Success", func(t *testing.T) {
+		err = repo.DeleteOperation(ctx, testRecord.Metadata, "op1")
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.Operations, 0)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
 	t.Run("Delete Success", func(t *testing.T) {
 		err = repo.Delete(ctx, testRecord.Metadata)
 		require.NoError(t, err)
@@ -106,11 +263,11 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", metaInstanceidPrefix, i+1)
 			newRecord.Metadata.Version = 0
 			newRecord.Name = fmt.Sprintf("%s-%d", metaInstanceidPrefix, i+1)
-			newRecord.Status.State = metainstance.MetaInstanceStateActive
+			newRecord.Status.State = metainstance.MetaInstanceStateRunning
 			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", metaInstanceidPrefix, i+1)
 
 			if (i+1)%2 == 0 {
-				newRecord.Status.State = metainstance.MetaInstanceStateInActive
+				newRecord.Status.State = metainstance.MetaInstanceStateTerminated
 				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", metaInstanceidPrefix, i+1)
 			}
 
@@ -118,6 +275,26 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			require.NoError(t, err)
 		}
 	})
+
+	// Add operations on every 3rd record.
+	for i := 0; i < 10; i += 3 {
+		operation := metainstance.Operation{
+			ID:       fmt.Sprintf("op-%d", i+1),
+			Type:     "create",
+			IntentID: fmt.Sprintf("intent-%d", i+1),
+			Status: metainstance.OperationStatus{
+				State:   metainstance.OperationStatePendingApproval,
+				Message: "Needs attention",
+			},
+		}
+
+		err = repo.InsertOperation(ctx, core.Metadata{
+			ID:      fmt.Sprintf("%s-%d", metaInstanceidPrefix, i+1),
+			Version: 0,
+		}, operation)
+
+		require.NoError(t, err)
+	}
 
 	t.Run("List", func(t *testing.T) {
 		records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{})
@@ -127,7 +304,6 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		receivedIDs := []string{}
 		for _, record := range records {
 			receivedIDs = append(receivedIDs, record.Metadata.ID)
-
 		}
 		expectedIDs := []string{}
 		for i := range 10 {
@@ -139,12 +315,12 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 		t.Run("List Success With Filter", func(t *testing.T) {
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
-				StateIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateActive},
+				StateIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateRunning},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, metainstance.MetaInstanceStateActive, record.Status.State)
+				require.Equal(t, metainstance.MetaInstanceStateRunning, record.Status.State)
 			}
 		})
 
@@ -182,18 +358,18 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 		t.Run("List with StateNotIn", func(t *testing.T) {
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
-				StateNotIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateActive},
+				StateNotIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateRunning},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, metainstance.MetaInstanceStateInActive, record.Status.State)
+				require.Equal(t, metainstance.MetaInstanceStateTerminated, record.Status.State)
 			}
 		})
 
 		t.Run("Update State and check version", func(t *testing.T) {
 			status := metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStatePending,
+				State:   metainstance.MetaInstanceStatePendingAllocation,
 				Message: "Needs attention",
 			}
 
@@ -204,7 +380,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 				VersionEq: &ve,
 			})
 			require.NoError(t, err)
-			require.Len(t, records, 1)
+			require.Len(t, records, 4) // 3 with operations and 1 with updated state
 
 			ve += 1
 			records, err = repo.List(ctx, metainstance.MetaInstanceListFilters{

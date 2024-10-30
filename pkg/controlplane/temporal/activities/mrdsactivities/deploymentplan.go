@@ -23,6 +23,9 @@ func NewDeploymentPlanActivities(client mrdspb.DeploymentPlansClient, registry w
 	registry.RegisterActivity(a.UpdateDeploymentPlanStatus)
 	registry.RegisterActivity(a.ListDeploymentPlan)
 	registry.RegisterActivity(a.DeleteDeploymentPlan)
+	registry.RegisterActivity(a.AddDeployment)
+	registry.RegisterActivity(a.UpdateDeploymentStatus)
+
 	return a
 }
 

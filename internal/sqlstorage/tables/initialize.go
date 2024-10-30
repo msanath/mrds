@@ -19,7 +19,9 @@ func Initialize(simpleDB simplesql.Database) error {
 	schemaMigrations = append(schemaMigrations, deploymentPlanDeploymentTableMigrations...)
 	schemaMigrations = append(schemaMigrations, deploymentPlanMatchingCapabilityTableMigrations...)
 	schemaMigrations = append(schemaMigrations, deploymentPlanDeploymentPayloadCoordinatesTableMigrations...)
-	// ++ledgerbuilder:Migrations
+	schemaMigrations = append(schemaMigrations, metaInstanceOperationTableMigrations...)
+schemaMigrations = append(schemaMigrations, metaInstanceRuntimeInstanceTableMigrations...)
+// ++ledgerbuilder:Migrations
 
 	err := simpleDB.ApplyMigrations(schemaMigrations)
 	if err != nil {

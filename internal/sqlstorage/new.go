@@ -65,7 +65,7 @@ func errHandler(err error) error {
 	case simplesql.ErrRecordNotFound:
 		return ledgererrors.NewLedgerError(ledgererrors.ErrRecordNotFound, "Record not found.")
 	case simplesql.ErrInsertConflict:
-		return ledgererrors.NewLedgerError(ledgererrors.ErrRecordInsertConflict, "Duplicate entry, record already exists.")
+		return ledgererrors.NewLedgerError(ledgererrors.ErrRecordInsertConflict, "Insert Conflict.")
 	case simplesql.ErrInternal:
 		return ledgererrors.NewLedgerError(ledgererrors.ErrRepositoryInternal, "Internal error.")
 	default:

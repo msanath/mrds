@@ -19,7 +19,11 @@ var metaInstanceTableMigrations = []simplesql.Migration{
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
 				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-				UNIQUE (id, name, is_deleted)
+				deployment_plan_id VARCHAR(255) NOT NULL,
+				deployment_id VARCHAR(255) NOT NULL,
+				UNIQUE (name, is_deleted),
+				FOREIGN KEY (deployment_plan_id) REFERENCES deployment_plan(id) ON DELETE CASCADE,
+				FOREIGN KEY (deployment_id) REFERENCES deployment_plan_deployment(id) ON DELETE CASCADE
 			);
 		`,
 		Down: `
@@ -29,27 +33,32 @@ var metaInstanceTableMigrations = []simplesql.Migration{
 }
 
 type MetaInstanceRow struct {
-	ID        string `db:"id" orm:"op=create key=primary_key filter=In"`
-	Version   uint64 `db:"version" orm:"op=create,update"`
-	Name      string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted bool   `db:"is_deleted"`
-	State     string `db:"state" orm:"op=create,update filter=In,NotIn"`
-	Message   string `db:"message" orm:"op=create,update"`
+	ID               string `db:"id" orm:"op=create key=primary_key filter=In"`
+	Version          uint64 `db:"version" orm:"op=create,update"`
+	Name             string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
+	IsDeleted        bool   `db:"is_deleted"`
+	State            string `db:"state" orm:"op=create,update filter=In,NotIn"`
+	Message          string `db:"message" orm:"op=create,update"`
+	DeploymentPlanID string `db:"deployment_plan_id" orm:"op=create filter=In"`
+	DeploymentID     string `db:"deployment_id" orm:"op=create,update filter=In"`
 }
 
 type MetaInstanceTableUpdateFields struct {
-	State   *string `db:"state"`
-	Message *string `db:"message"`
+	State        *string `db:"state"`
+	Message      *string `db:"message"`
+	DeploymentID *string `db:"deployment_id"`
 }
 
 type MetaInstanceTableSelectFilters struct {
-	IDIn       []string `db:"id:in"`        // IN condition
-	NameIn     []string `db:"name:in"`      // IN condition
-	StateIn    []string `db:"state:in"`     // IN condition
-	StateNotIn []string `db:"state:not_in"` // NOT IN condition
-	VersionGte *uint64  `db:"version:gte"`  // Greater than or equal condition
-	VersionLte *uint64  `db:"version:lte"`  // Less than or equal condition
-	VersionEq  *uint64  `db:"version:eq"`   // Equal condition
+	IDIn               []string `db:"id:in"`                 // IN condition
+	NameIn             []string `db:"name:in"`               // IN condition
+	StateIn            []string `db:"state:in"`              // IN condition
+	StateNotIn         []string `db:"state:not_in"`          // NOT IN condition
+	VersionGte         *uint64  `db:"version:gte"`           // Greater than or equal condition
+	VersionLte         *uint64  `db:"version:lte"`           // Less than or equal condition
+	VersionEq          *uint64  `db:"version:eq"`            // Equal condition
+	DeploymentIDIn     []string `db:"deployment_id:in"`      // IN condition
+	DeploymentPlanIDIn []string `db:"deployment_plan_id:in"` // IN condition
 
 	IncludeDeleted bool   `db:"include_deleted"` // Special boolean handling
 	Limit          uint32 `db:"limit"`

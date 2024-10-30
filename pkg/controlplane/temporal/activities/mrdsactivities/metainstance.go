@@ -23,6 +23,13 @@ func NewMetaInstanceActivities(client mrdspb.MetaInstancesClient, registry worke
 	registry.RegisterActivity(a.UpdateMetaInstanceStatus)
 	registry.RegisterActivity(a.ListMetaInstance)
 	registry.RegisterActivity(a.DeleteMetaInstance)
+	registry.RegisterActivity(a.AddRuntimeInstance)
+	registry.RegisterActivity(a.UpdateRuntimeStatus)
+	registry.RegisterActivity(a.RemoveRuntimeInstance)
+	registry.RegisterActivity(a.AddOperation)
+	registry.RegisterActivity(a.UpdateOperationStatus)
+	registry.RegisterActivity(a.RemoveOperation)
+	registry.RegisterActivity(a.UpdateDeploymentID)
 	return a
 }
 
@@ -104,6 +111,97 @@ func (c *MetaInstanceActivities) DeleteMetaInstance(ctx context.Context, req *mr
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to delete MetaInstance", "error", err)
 		return nil, fmt.Errorf("failed to delete MetaInstance: %w", err)
+	}
+
+	return resp, nil
+}
+
+// AddRuntimeInstance is an activity that interacts with the gRPC service to add a RuntimeInstance to a MetaInstance.
+func (c *MetaInstanceActivities) AddRuntimeInstance(ctx context.Context, req *mrdspb.AddRuntimeInstanceRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Adding RuntimeInstance to MetaInstance", "request", req)
+
+	resp, err := c.client.AddRuntimeInstance(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to add RuntimeInstance to MetaInstance", "error", err)
+		return nil, fmt.Errorf("failed to add RuntimeInstance to MetaInstance: %w", err)
+	}
+
+	return resp, nil
+}
+
+// UpdateRuntimeStatus is an activity that interacts with the gRPC service to update the status of a RuntimeInstance.
+func (c *MetaInstanceActivities) UpdateRuntimeStatus(ctx context.Context, req *mrdspb.UpdateRuntimeStatusRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Updating RuntimeInstance status", "request", req)
+
+	resp, err := c.client.UpdateRuntimeStatus(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update RuntimeInstance status", "error", err)
+		return nil, fmt.Errorf("failed to update RuntimeInstance status: %w", err)
+	}
+
+	return resp, nil
+}
+
+// RemoveRuntimeInstance is an activity that interacts with the gRPC service to remove a RuntimeInstance from a MetaInstance.
+func (c *MetaInstanceActivities) RemoveRuntimeInstance(ctx context.Context, req *mrdspb.RemoveRuntimeInstanceRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Removing RuntimeInstance from MetaInstance", "request", req)
+
+	resp, err := c.client.RemoveRuntimeInstance(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to remove RuntimeInstance from MetaInstance", "error", err)
+		return nil, fmt.Errorf("failed to remove RuntimeInstance from MetaInstance: %w", err)
+	}
+
+	return resp, nil
+}
+
+// AddOperation is an activity that interacts with the gRPC service to add an Operation to a MetaInstance.
+func (c *MetaInstanceActivities) AddOperation(ctx context.Context, req *mrdspb.AddOperationRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Adding Operation to MetaInstance", "request", req)
+
+	resp, err := c.client.AddOperation(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to add Operation to MetaInstance", "error", err)
+		return nil, fmt.Errorf("failed to add Operation to MetaInstance: %w", err)
+	}
+
+	return resp, nil
+}
+
+// UpdateOperationStatus is an activity that interacts with the gRPC service to update the status of an Operation.
+func (c *MetaInstanceActivities) UpdateOperationStatus(ctx context.Context, req *mrdspb.UpdateOperationStatusRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Updating Operation status", "request", req)
+
+	resp, err := c.client.UpdateOperationStatus(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update Operation status", "error", err)
+		return nil, fmt.Errorf("failed to update Operation status: %w", err)
+	}
+
+	return resp, nil
+}
+
+// RemoveOperation is an activity that interacts with the gRPC service to remove an Operation from a MetaInstance.
+func (c *MetaInstanceActivities) RemoveOperation(ctx context.Context, req *mrdspb.RemoveOperationRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Removing Operation from MetaInstance", "request", req)
+
+	resp, err := c.client.RemoveOperation(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to remove Operation from MetaInstance", "error", err)
+		return nil, fmt.Errorf("failed to remove Operation from MetaInstance: %w", err)
+	}
+
+	return resp, nil
+}
+
+// UpdateDeploymentID is an activity that interacts with the gRPC service to update the DeploymentID of a MetaInstance.
+func (c *MetaInstanceActivities) UpdateDeploymentID(ctx context.Context, req *mrdspb.UpdateDeploymentIDRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Updating DeploymentID of MetaInstance", "request", req)
+
+	resp, err := c.client.UpdateDeploymentID(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update DeploymentID of MetaInstance", "error", err)
+		return nil, fmt.Errorf("failed to update DeploymentID of MetaInstance: %w", err)
 	}
 
 	return resp, nil

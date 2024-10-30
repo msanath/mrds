@@ -5,22 +5,87 @@ import (
 	"testing"
 
 	"github.com/msanath/mrds/internal/ledger/core"
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
+	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
-
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLedgerCreate(t *testing.T) {
+func CreateRequest() *metainstance.CreateRequest {
 
+	return &metainstance.CreateRequest{
+		Name:             "test-metainstance",
+		DeploymentPlanID: "test-deployment-plan",
+		DeploymentID:     "test-deployment",
+	}
+}
+
+func TestOperationsLedger(t *testing.T) {
+	// Pre-requiste - create a deployment Plan and add a deployment
+	storage := test.TestSQLStorage(t)
+	dl := deploymentplan.NewLedger(storage.DeploymentPlan)
+	resp, err := dl.Create(context.Background(), &deploymentplan.CreateRequest{
+		Name:        "test-deploymentplan",
+		Namespace:   "test-namespace",
+		ServiceName: "test-service",
+		Applications: []deploymentplan.Application{
+			{
+				PayloadName: "test-payload",
+				Resources: deploymentplan.ApplicationResources{
+					Cores: 1,
+				},
+			},
+		},
+		MatchingComputeCapabilities: []deploymentplan.MatchingComputeCapability{
+			{
+				CapabilityType:  "test-capability",
+				Comparator:      deploymentplan.ComparatorTypeIn,
+				CapabilityNames: []string{"test-capability-name"},
+			},
+		},
+	})
+	require.NoError(t, err)
+	dPlanUpdateResp, err := dl.AddDeployment(context.Background(), &deploymentplan.AddDeploymentRequest{
+		Metadata:     resp.Record.Metadata,
+		DeploymentID: "test-deployment-1",
+		PayloadCoordinates: []deploymentplan.PayloadCoordinates{
+			{
+				PayloadName: "test-payload",
+				Coordinates: map[string]string{
+					"key1": "value1",
+				},
+			},
+		},
+		InstanceCount: 3,
+	})
+	require.NoError(t, err)
+
+	// Create a node
+	nl := node.NewLedger(storage.Node)
+	nodeCreateResp, err := nl.Create(context.Background(), &node.CreateRequest{
+		Name:         "test-node",
+		UpdateDomain: "test-domain",
+		TotalResources: node.Resources{
+			Cores:  64,
+			Memory: 512,
+		},
+		SystemReservedResources: node.Resources{
+			Cores:  4,
+			Memory: 32,
+		},
+		CapabilityIDs: []string{"test-capability", "test-capability-1"},
+	})
+
+	var lastUpdatedRecord metainstance.MetaInstanceRecord
 	t.Run("Create Success", func(t *testing.T) {
-		storage := test.TestSQLStorage(t)
 		l := metainstance.NewLedger(storage.MetaInstance)
 
 		req := &metainstance.CreateRequest{
-			Name: "test-metainstance",
+			Name:             "test-metainstance",
+			DeploymentPlanID: resp.Record.Metadata.ID,
+			DeploymentID:     "test-deployment-1",
 		}
 		resp, err := l.Create(context.Background(), req)
 
@@ -29,12 +94,12 @@ func TestLedgerCreate(t *testing.T) {
 		require.Equal(t, "test-metainstance", resp.Record.Name)
 		require.NotEmpty(t, resp.Record.Metadata.ID)
 		require.Equal(t, uint64(0), resp.Record.Metadata.Version)
-		require.Equal(t, metainstance.MetaInstanceStatePending, resp.Record.Status.State)
+		require.Equal(t, metainstance.MetaInstanceStatePendingAllocation, resp.Record.Status.State)
+		lastUpdatedRecord = resp.Record
 	})
 
+	l := metainstance.NewLedger(storage.MetaInstance)
 	t.Run("Create EmptyName Failure", func(t *testing.T) {
-		storage := test.TestSQLStorage(t)
-		l := metainstance.NewLedger(storage.MetaInstance)
 
 		req := &metainstance.CreateRequest{
 			Name: "", // Empty name
@@ -46,20 +111,9 @@ func TestLedgerCreate(t *testing.T) {
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
 		require.Nil(t, resp)
 	})
-}
-
-func TestLedgerGetByMetadata(t *testing.T) {
-	storage := test.TestSQLStorage(t)
-	l := metainstance.NewLedger(storage.MetaInstance)
-
-	req := &metainstance.CreateRequest{
-		Name: "test-metainstance",
-	}
-	createResp, err := l.Create(context.Background(), req)
-	require.NoError(t, err)
 
 	t.Run("GetByMetadata Success", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
+		resp, err := l.GetByMetadata(context.Background(), &lastUpdatedRecord.Metadata)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -69,31 +123,20 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
 		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: ""})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("GetByMetadata NotFound Failure", func(t *testing.T) {
 		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: "unknown"})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
-}
-
-func TestLedgerGetByName(t *testing.T) {
-	storage := test.TestSQLStorage(t)
-	l := metainstance.NewLedger(storage.MetaInstance)
-
-	req := &metainstance.CreateRequest{
-		Name: "test-metainstance",
-	}
-	_, err := l.Create(context.Background(), req)
-	require.NoError(t, err)
 
 	t.Run("GetByName Success", func(t *testing.T) {
 		resp, err := l.GetByName(context.Background(), "test-metainstance")
@@ -106,38 +149,26 @@ func TestLedgerGetByName(t *testing.T) {
 	t.Run("GetByName InvalidName Failure", func(t *testing.T) {
 		resp, err := l.GetByName(context.Background(), "")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("GetByName NotFound Failure", func(t *testing.T) {
 		resp, err := l.GetByName(context.Background(), "unknown")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
-}
 
-func TestLedgerUpdateStatus(t *testing.T) {
-	storage := test.TestSQLStorage(t)
-	l := metainstance.NewLedger(storage.MetaInstance)
-
-	req := &metainstance.CreateRequest{
-		Name: "test-metainstance",
-	}
-	createResp, err := l.Create(context.Background(), req)
-	require.NoError(t, err)
-
-	lastUpdatedRecord := createResp.Record
 	t.Run("UpdateStatus Success", func(t *testing.T) {
 		updateReq := &metainstance.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
 			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStateInActive,
+				State:   metainstance.MetaInstanceStateTerminated,
 				Message: "MetaInstance is inactive now",
 			},
 		}
@@ -146,7 +177,7 @@ func TestLedgerUpdateStatus(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, metainstance.MetaInstanceStateInActive, resp.Record.Status.State)
+		require.Equal(t, metainstance.MetaInstanceStateTerminated, resp.Record.Status.State)
 		lastUpdatedRecord = resp.Record
 	})
 
@@ -154,72 +185,205 @@ func TestLedgerUpdateStatus(t *testing.T) {
 		updateReq := &metainstance.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
 			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStatePending, // Invalid transition
+				State:   metainstance.MetaInstanceStatePendingAllocation, // Invalid transition
 				Message: "Invalid state transition",
 			},
 		}
 
 		resp, err := l.UpdateStatus(context.Background(), updateReq)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("Update conflict Failure", func(t *testing.T) {
 		updateReq := &metainstance.UpdateStatusRequest{
-			Metadata: createResp.Record.Metadata, // This is the old metadata. Should cause a conflict.
+			Metadata: core.Metadata{
+				ID:      lastUpdatedRecord.Metadata.ID,
+				Version: lastUpdatedRecord.Metadata.Version - 1, // This is the old version. Should cause a conflict.
+			}, // This is the old metadata. Should cause a conflict.
 			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStateActive,
+				State:   metainstance.MetaInstanceStateRunning,
 				Message: "MetaInstance is active now",
 			},
 		}
 
 		resp, err := l.UpdateStatus(context.Background(), updateReq)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
-}
 
-func TestLedgerList(t *testing.T) {
-	storage := test.TestSQLStorage(t)
-	l := metainstance.NewLedger(storage.MetaInstance)
+	t.Run("Update Deployment ID Success", func(t *testing.T) {
+		// Mark the previous deployment ID as done and create another
+		dPlanUpdateResp, err = dl.UpdateDeploymentStatus(context.Background(), &deploymentplan.UpdateDeploymentStatusRequest{
+			Metadata:     dPlanUpdateResp.Record.Metadata,
+			DeploymentID: "test-deployment-1",
+			Status: deploymentplan.DeploymentStatus{
+				State: deploymentplan.DeploymentStateCompleted,
+			},
+		})
+		require.NoError(t, err)
+		dPlanUpdateResp, err = dl.AddDeployment(context.Background(), &deploymentplan.AddDeploymentRequest{
+			Metadata:     dPlanUpdateResp.Record.Metadata,
+			DeploymentID: "test-deployment-2",
+			PayloadCoordinates: []deploymentplan.PayloadCoordinates{
+				{
+					PayloadName: "test-payload",
+					Coordinates: map[string]string{
+						"key1": "value1",
+					},
+				},
+			},
+			InstanceCount: 3,
+		})
+		require.NoError(t, err)
 
-	// Create two MetaInstances
-	_, err := l.Create(context.Background(), &metainstance.CreateRequest{Name: "MetaInstance1"})
-	assert.NoError(t, err)
+		resp, err := l.UpdateDeploymentID(context.Background(), &metainstance.UpdateDeploymentIDRequest{
+			Metadata:     lastUpdatedRecord.Metadata,
+			DeploymentID: "test-deployment-2",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, "test-deployment-2", resp.Record.DeploymentID)
+		lastUpdatedRecord = resp.Record
+	})
 
-	_, err = l.Create(context.Background(), &metainstance.CreateRequest{Name: "MetaInstance2"})
-	assert.NoError(t, err)
+	t.Run("Add RuntimeInstance Success", func(t *testing.T) {
+		resp, err := l.AddRuntimeInstance(context.Background(), &metainstance.AddRuntimeInstanceRequest{
+			Metadata: lastUpdatedRecord.Metadata,
+			RuntimeInstance: metainstance.RuntimeInstance{
+				ID:       "test-runtime-instance",
+				NodeID:   nodeCreateResp.Record.Metadata.ID,
+				IsActive: true,
+				Status: metainstance.RuntimeInstanceStatus{
+					State:   metainstance.RuntimeStateRunning,
+					Message: "Runtime instance is running",
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.RuntimeInstances, 1)
+		require.Equal(t, "test-runtime-instance", resp.Record.RuntimeInstances[0].ID)
+		lastUpdatedRecord = resp.Record
+	})
 
-	// List the MetaInstances
-	listReq := &metainstance.ListRequest{}
-	resp, err := l.List(context.Background(), listReq)
+	t.Run("Update RuntimeInstance Status Success", func(t *testing.T) {
+		resp, err := l.UpdateRuntimeStatus(context.Background(), &metainstance.UpdateRuntimeStatusRequest{
+			Metadata:          lastUpdatedRecord.Metadata,
+			RuntimeInstanceID: "test-runtime-instance",
+			Status: metainstance.RuntimeInstanceStatus{
+				State:   metainstance.RuntimeStateTerminated,
+				Message: "Runtime instance is terminated",
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
 
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Len(t, resp.Records, 2)
-}
+		// Check the status of the runtime instance
+		require.Len(t, resp.Record.RuntimeInstances, 1)
+		require.Equal(t, "test-runtime-instance", resp.Record.RuntimeInstances[0].ID)
+		require.Equal(t, metainstance.RuntimeStateTerminated, resp.Record.RuntimeInstances[0].Status.State)
+		lastUpdatedRecord = resp.Record
+	})
 
-func TestLedgerDelete(t *testing.T) {
-	storage := test.TestSQLStorage(t)
-	l := metainstance.NewLedger(storage.MetaInstance)
+	t.Run("Remove RuntimeInstance Success", func(t *testing.T) {
+		resp, err := l.RemoveRuntimeInstance(context.Background(), &metainstance.RemoveRuntimeInstanceRequest{
+			Metadata:          lastUpdatedRecord.Metadata,
+			RuntimeInstanceID: "test-runtime-instance",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
 
-	// First, create the MetaInstance
-	createResp, err := l.Create(context.Background(), &metainstance.CreateRequest{Name: "test-metainstance"})
-	assert.NoError(t, err)
+		// Check the status of the runtime instance
+		require.Len(t, resp.Record.RuntimeInstances, 0)
+		lastUpdatedRecord = resp.Record
+	})
 
-	// Now, delete the MetaInstance
-	err = l.Delete(context.Background(), &metainstance.DeleteRequest{Metadata: createResp.Record.Metadata})
-	assert.NoError(t, err)
+	t.Run("List Success", func(t *testing.T) {
+		l := metainstance.NewLedger(storage.MetaInstance)
 
-	// Try to get the MetaInstance again
-	_, err = l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
-	assert.Error(t, err)
-	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
-	require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
+		req := &metainstance.CreateRequest{
+			Name:             "test-metainstance-2",
+			DeploymentPlanID: resp.Record.Metadata.ID,
+			DeploymentID:     "test-deployment-2",
+		}
+		resp, err := l.Create(context.Background(), req)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		// List the MetaInstances
+		listReq := &metainstance.ListRequest{}
+		listResp, err := l.List(context.Background(), listReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, listResp.Records, 2)
+	})
+
+	t.Run("Add Operation Success", func(t *testing.T) {
+		resp, err := l.AddOperation(context.Background(), &metainstance.AddOperationRequest{
+			Metadata: lastUpdatedRecord.Metadata,
+			Operation: metainstance.Operation{
+				ID:       "test-operation",
+				Type:     "test-operation-type",
+				IntentID: "test-intent",
+				Status: metainstance.OperationStatus{
+					State:   metainstance.OperationStatePendingApproval,
+					Message: "Operation is running",
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.Operations, 1)
+		require.Equal(t, "test-operation", resp.Record.Operations[0].ID)
+		lastUpdatedRecord = resp.Record
+	})
+
+	t.Run("Update Operation Status Success", func(t *testing.T) {
+		resp, err := l.UpdateOperationStatus(context.Background(), &metainstance.UpdateOperationStatusRequest{
+			Metadata:    lastUpdatedRecord.Metadata,
+			OperationID: "test-operation",
+			Status: metainstance.OperationStatus{
+				State:   metainstance.OperationStateSucceeded,
+				Message: "Operation is successful",
+			},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.Operations, 1)
+		require.Equal(t, "test-operation", resp.Record.Operations[0].ID)
+		require.Equal(t, metainstance.OperationStateSucceeded, resp.Record.Operations[0].Status.State)
+		lastUpdatedRecord = resp.Record
+	})
+
+	t.Run("Remove Operation Success", func(t *testing.T) {
+		resp, err := l.RemoveOperation(context.Background(), &metainstance.RemoveOperationRequest{
+			Metadata:    lastUpdatedRecord.Metadata,
+			OperationID: "test-operation",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Len(t, resp.Record.Operations, 0)
+		lastUpdatedRecord = resp.Record
+	})
+
+	t.Run("Delete Success", func(t *testing.T) {
+		// Now, delete the MetaInstance
+		err = l.Delete(context.Background(), &metainstance.DeleteRequest{Metadata: lastUpdatedRecord.Metadata})
+		require.NoError(t, err)
+
+		// Try to get the MetaInstance again
+		_, err = l.GetByMetadata(context.Background(), &lastUpdatedRecord.Metadata)
+		require.Error(t, err)
+		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
+		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
+	})
+
 }
