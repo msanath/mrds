@@ -122,7 +122,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 			Message: "Needs attention",
 		}
 
-		err = repo.UpdateState(ctx, testRecord.Metadata, status)
+		err = repo.UpdateStatus(ctx, testRecord.Metadata, status, "")
 		require.NoError(t, err)
 
 		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
@@ -318,7 +318,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 				Message: "Needs attention",
 			}
 
-			err = repo.UpdateState(ctx, allRecords[1].Metadata, status)
+			err = repo.UpdateStatus(ctx, allRecords[1].Metadata, status, "")
 			require.NoError(t, err)
 			ve := uint64(1)
 			records, err := repo.List(ctx, node.NodeListFilters{

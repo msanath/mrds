@@ -98,7 +98,7 @@ type Ledger interface {
 
 // CreateRequest represents the Node creation request.
 type CreateRequest struct {
-	Name                    string
+	Name                    string    // Name is the name of the Node.
 	UpdateDomain            string    // UpdateDomain is the update domain of the Node.
 	TotalResources          Resources // TotalResources is the total resources available on the Node.
 	SystemReservedResources Resources // SystemReservedResources is the resources reserved for system use.

@@ -249,13 +249,14 @@ func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.Node
 	return nodeRecord, nil
 }
 
-func (s *nodeStorage) UpdateState(ctx context.Context, metadata core.Metadata, status node.NodeStatus) error {
+func (s *nodeStorage) UpdateStatus(ctx context.Context, metadata core.Metadata, status node.NodeStatus, clusterID string) error {
 	execer := s.DB
 	state := string(status.State)
 	message := status.Message
 	updateFields := tables.NodeUpdateFields{
-		State:   &state,
-		Message: &message,
+		State:     &state,
+		Message:   &message,
+		ClusterID: &clusterID,
 	}
 	err := s.nodeTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
 	if err != nil {

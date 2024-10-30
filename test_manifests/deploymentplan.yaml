@@ -1,0 +1,31 @@
+plans:
+  - name: "Plan1"
+    namespace: "default"
+    serviceName: "serviceA"
+    matchingComputeCapabilities:
+      - capabilityType: "GPU"
+        comparator: "gte"
+        capabilityNames:
+          - "nvidia-tesla-v100"
+          - "nvidia-tesla-p100"
+      - capabilityType: "CPU"
+        comparator: "eq"
+        capabilityNames:
+          - "intel-xeon"
+    applications:
+      - payloadName: "app1"
+        resources:
+          cores: 4
+          memory: 8192
+        ports:
+          - protocol: "TCP"
+            port: 80
+          - protocol: "UDP"
+            port: 53
+        persistentVolumes:
+          - storageClass: "standard"
+            capacity: 100
+            mountPath: "/data"
+          - storageClass: "fast-ssd"
+            capacity: 500
+            mountPath: "/ssd"

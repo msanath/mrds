@@ -9,7 +9,8 @@ prepare:
 .PHONY: build
 build: prepare proto tidy gofmt
 	go build -o $(BUILD_DIR)/mrds-apiserver ./cmd/apiserver && \
-	go build -o $(BUILD_DIR)/mrds-controlplane ./cmd/controlplane
+	go build -o $(BUILD_DIR)/mrds-controlplane ./cmd/controlplane && \
+	go build -o $(BUILD_DIR)/mrds-ctl ./cmd/ctl
 
 .PHONY: tidy
 tidy:

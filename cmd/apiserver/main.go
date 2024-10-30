@@ -8,6 +8,10 @@ import (
 
 	"github.com/msanath/mrds/gen/api/mrdspb"
 	"github.com/msanath/mrds/internal/ledger/cluster"
+	"github.com/msanath/mrds/internal/ledger/computecapability"
+	"github.com/msanath/mrds/internal/ledger/deploymentplan"
+	"github.com/msanath/mrds/internal/ledger/metainstance"
+	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage"
 	"github.com/msanath/mrds/pkg/grpcservers"
 
@@ -43,7 +47,9 @@ func (o serverOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	gServer := grpc.NewServer()
+	gServer := grpc.NewServer(
+		grpc.UnaryInterceptor(loggingInterceptor),
+	)
 	// dbConn, err := newDBConn()
 	// if err != nil {
 	// 	return err
@@ -61,6 +67,29 @@ func (o serverOptions) Run(ctx context.Context) error {
 	mrdspb.RegisterClustersServer(
 		gServer,
 		grpcservers.NewClusterService(clusterLedger),
+	)
+	computeCapabilityLedger := computecapability.NewLedger(storage.ComputeCapability)
+	mrdspb.RegisterComputeCapabilitiesServer(
+		gServer,
+		grpcservers.NewComputeCapabilityService(computeCapabilityLedger),
+	)
+
+	nodeLedger := node.NewLedger(storage.Node)
+	mrdspb.RegisterNodesServer(
+		gServer,
+		grpcservers.NewNodeService(nodeLedger),
+	)
+
+	metaInstanceLedger := metainstance.NewLedger(storage.MetaInstance)
+	mrdspb.RegisterMetaInstancesServer(
+		gServer,
+		grpcservers.NewMetaInstanceService(metaInstanceLedger),
+	)
+
+	deploymentPlanLedger := deploymentplan.NewLedger(storage.DeploymentPlan)
+	mrdspb.RegisterDeploymentPlansServer(
+		gServer,
+		grpcservers.NewDeploymentPlanService(deploymentPlanLedger),
 	)
 
 	log.Info("Starting MRDS API server")

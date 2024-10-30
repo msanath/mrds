@@ -86,6 +86,7 @@ const (
 	DeploymentStateUnknown    DeploymentState = "DeploymentState_UNKNOWN"
 	DeploymentStatePending    DeploymentState = "DeploymentState_PENDING"
 	DeploymentStateInProgress DeploymentState = "DeploymentState_IN_PROGRESS"
+	DeploymentStateCancelled  DeploymentState = "DeploymentState_CANCELLED"
 	DeploymentStateFailed     DeploymentState = "DeploymentState_FAILED"
 	DeploymentStatePaused     DeploymentState = "DeploymentState_PAUSED"
 	DeploymentStateCompleted  DeploymentState = "DeploymentState_COMPLETED"

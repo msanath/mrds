@@ -293,10 +293,9 @@ func (l *ledger) AddDeployment(ctx context.Context, req *AddDeploymentRequest) (
 }
 
 var validDeploymentStateTransitions = map[DeploymentState][]DeploymentState{
-	DeploymentStatePending:    {DeploymentStateInProgress, DeploymentStateFailed},
-	DeploymentStateInProgress: {DeploymentStateFailed, DeploymentStatePaused, DeploymentStateCompleted},
-	DeploymentStateFailed:     {DeploymentStateInProgress, DeploymentStatePaused},
-	DeploymentStatePaused:     {DeploymentStateInProgress, DeploymentStateFailed},
+	DeploymentStatePending:    {DeploymentStateInProgress, DeploymentStateCancelled},
+	DeploymentStateInProgress: {DeploymentStateCancelled, DeploymentStateFailed, DeploymentStatePaused, DeploymentStateCompleted},
+	DeploymentStatePaused:     {DeploymentStateInProgress, DeploymentStateCancelled},
 }
 
 func (l *ledger) UpdateDeploymentStatus(ctx context.Context, req *UpdateDeploymentStatusRequest) (*UpdateResponse, error) {

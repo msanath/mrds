@@ -20,7 +20,7 @@ type Repository interface {
 	Insert(context.Context, NodeRecord) error
 	GetByMetadata(context.Context, core.Metadata) (NodeRecord, error)
 	GetByName(context.Context, string) (NodeRecord, error)
-	UpdateState(context.Context, core.Metadata, NodeStatus) error
+	UpdateStatus(context.Context, core.Metadata, NodeStatus, string) error
 	Delete(context.Context, core.Metadata) error
 	List(context.Context, NodeListFilters) ([]NodeRecord, error)
 
@@ -211,14 +211,14 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		}
 	}
 
-	if req.ClusterID != "" && req.Status.State != NodeStateAllocating || req.Status.State == NodeStateAllocated {
+	if req.ClusterID != "" && !(req.Status.State == NodeStateAllocating || req.Status.State == NodeStateAllocated) {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
 			"ClusterID is only allowed when transitioning to NodeStateAllocating",
 		)
 	}
 
-	err = l.repo.UpdateState(ctx, req.Metadata, req.Status)
+	err = l.repo.UpdateStatus(ctx, req.Metadata, req.Status, req.ClusterID)
 	if err != nil {
 		return nil, err
 	}

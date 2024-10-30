@@ -26,11 +26,24 @@ func deploymentPlanLedgerRecordToProto(record deploymentplan.DeploymentPlanRecor
 			State:   mrdspb.DeploymentPlanState(mrdspb.DeploymentPlanState_value[string(record.Status.State)]),
 			Message: record.Status.Message,
 		},
-		Namespace:    record.Namespace,
-		ServiceName:  record.ServiceName,
-		Deployments:  deploymentPlanDeploymentsToProto(record.Deployments),
-		Applications: deploymentPlanApplicationsToProto(record.Applications),
+		Namespace:                   record.Namespace,
+		ServiceName:                 record.ServiceName,
+		MatchingComputeCapabilities: deploymentPlanMatchingComputeCapabilitiesToProto(record.MatchingComputeCapabilities),
+		Deployments:                 deploymentPlanDeploymentsToProto(record.Deployments),
+		Applications:                deploymentPlanApplicationsToProto(record.Applications),
 	}
+}
+
+func deploymentPlanMatchingComputeCapabilitiesToProto(capabilities []deploymentplan.MatchingComputeCapability) []*mrdspb.MatchingComputeCapability {
+	var protoCapabilities []*mrdspb.MatchingComputeCapability
+	for _, c := range capabilities {
+		protoCapabilities = append(protoCapabilities, &mrdspb.MatchingComputeCapability{
+			CapabilityType:  c.CapabilityType,
+			Comparator:      mrdspb.Comparator(mrdspb.Comparator_value[string(c.Comparator)]),
+			CapabilityNames: c.CapabilityNames,
+		})
+	}
+	return protoCapabilities
 }
 
 func deploymentPlanDeploymentsToProto(deployments []deploymentplan.Deployment) []*mrdspb.Deployment {
@@ -215,6 +228,9 @@ func (s *DeploymentPlanService) UpdateStatus(ctx context.Context, req *mrdspb.Up
 
 // List returns a list of DeploymentPlans that match the provided filters
 func (s *DeploymentPlanService) List(ctx context.Context, req *mrdspb.ListDeploymentPlanRequest) (*mrdspb.ListDeploymentPlanResponse, error) {
+	if req.Filters == nil {
+		req.Filters = &mrdspb.DeploymentPlanListFilters{}
+	}
 	// Convert StateIn from protobuf enum to interface enum
 	var stateIn []deploymentplan.DeploymentPlanState
 	for _, state := range req.Filters.StateIn {
