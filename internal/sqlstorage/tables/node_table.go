@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -18,7 +19,7 @@ var nodeTableMigrations = []simplesql.Migration{
 				name VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				update_domain VARCHAR(255) NOT NULL,
 				cluster_id VARCHAR(255) NOT NULL,
 				total_cores INT NOT NULL,
@@ -27,12 +28,12 @@ var nodeTableMigrations = []simplesql.Migration{
 				system_reserved_memory INT NOT NULL,
 				remaning_cores INT NOT NULL,
 				remaning_memory INT NOT NULL,
-				UNIQUE (id, name, is_deleted)
+				UNIQUE (name, deleted_at)
 			);
 		`,
 		Down: `
-				DROP TABLE IF EXISTS node;
-			`,
+			DROP TABLE IF EXISTS node;
+		`,
 	},
 }
 
@@ -40,7 +41,7 @@ type NodeRow struct {
 	ID                   string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version              uint64 `db:"version" orm:"op=create,update"`
 	Name                 string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted            bool   `db:"is_deleted"`
+	DeletedAt            int64  `db:"deleted_at"`
 	State                string `db:"state" orm:"op=create,update filter=In,NotIn"`
 	Message              string `db:"message" orm:"op=create,update"`
 	UpdateDomain         string `db:"update_domain" orm:"op=create filter=In"`
@@ -53,10 +54,16 @@ type NodeRow struct {
 	RemainingMemory      uint32 `db:"remaning_memory" orm:"op=create,update filter=lte,gte"`
 }
 
+type NodeKeys struct {
+	ID   *string `db:"id"`
+	Name *string `db:"name"`
+}
+
 type NodeUpdateFields struct {
 	State     *string `db:"state"`
 	Message   *string `db:"message"`
 	ClusterID *string `db:"cluster_id"`
+	DeletedAt *int64  `db:"deleted_at"`
 }
 
 type NodeSelectFilters struct {
@@ -96,18 +103,9 @@ func (s *NodeTable) Insert(ctx context.Context, execer sqlx.ExecerContext, row N
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *NodeTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (NodeRow, error) {
+func (s *NodeTable) Get(ctx context.Context, keys NodeKeys) (NodeRow, error) {
 	var row NodeRow
-	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
-	if err != nil {
-		return NodeRow{}, err
-	}
-	return row, nil
-}
-
-func (s *NodeTable) GetByName(ctx context.Context, name string) (NodeRow, error) {
-	var row NodeRow
-	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
+	err := s.Database.GetRowByKey(ctx, s.tableName, keys, &row)
 	if err != nil {
 		return NodeRow{}, err
 	}
@@ -121,7 +119,10 @@ func (s *NodeTable) Update(
 }
 
 func (s *NodeTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
-	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
+	timeNow := time.Now().Unix()
+	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, NodeUpdateFields{
+		DeletedAt: &timeNow,
+	})
 }
 
 func (s *NodeTable) List(ctx context.Context, filters NodeSelectFilters) ([]NodeRow, error) {

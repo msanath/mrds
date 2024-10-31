@@ -54,16 +54,6 @@ func TestComputeCapabilityRecordLifecycle(t *testing.T) {
 		require.Equal(t, testRecord, receivedRecord)
 	})
 
-	t.Run("Get By Metadata failure", func(t *testing.T) {
-		metadata := core.Metadata{
-			ID:      testRecord.Metadata.ID,
-			Version: 2, // Different version
-		}
-		_, err := repo.GetByMetadata(ctx, metadata)
-		require.Error(t, err)
-		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code, err.Error())
-	})
-
 	t.Run("Get By Name Success", func(t *testing.T) {
 		receivedRecord, err := repo.GetByName(ctx, testRecord.Name)
 		require.NoError(t, err)

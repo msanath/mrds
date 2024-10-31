@@ -42,10 +42,10 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 	testRecord := metainstance.MetaInstanceRecord{
 		Metadata: core.Metadata{
-			ID:      fmt.Sprintf("%s1", metaInstanceidPrefix),
+			ID:      fmt.Sprintf("%s-0", metaInstanceidPrefix),
 			Version: 1,
 		},
-		Name: fmt.Sprintf("%s1", metaInstanceidPrefix),
+		Name: fmt.Sprintf("%s-0", metaInstanceidPrefix),
 		Status: metainstance.MetaInstanceStatus{
 			State:   metainstance.MetaInstanceStateRunning,
 			Message: "",
@@ -76,16 +76,6 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		require.Equal(t, testRecord.DeploymentPlanID, receivedRecord.DeploymentPlanID)
 		require.Equal(t, testRecord.DeploymentID, receivedRecord.DeploymentID)
 		require.Equal(t, testRecord.Metadata, receivedRecord.Metadata)
-	})
-
-	t.Run("Get By Metadata failure", func(t *testing.T) {
-		metadata := core.Metadata{
-			ID:      testRecord.Metadata.ID,
-			Version: 2, // Different version
-		}
-		_, err := repo.GetByMetadata(ctx, metadata)
-		require.Error(t, err)
-		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code, err.Error())
 	})
 
 	t.Run("Get By Name Success", func(t *testing.T) {
@@ -346,7 +336,10 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		})
 
 		t.Run("List with IncludeDeleted", func(t *testing.T) {
-			err = repo.Delete(ctx, allRecords[0].Metadata)
+			// Get record with ID 1 and delete it.
+			rec, err := repo.GetByName(ctx, fmt.Sprintf("%s-1", metaInstanceidPrefix))
+			require.NoError(t, err)
+			err = repo.Delete(ctx, rec.Metadata)
 			require.NoError(t, err)
 
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
@@ -372,17 +365,18 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 				State:   metainstance.MetaInstanceStatePendingAllocation,
 				Message: "Needs attention",
 			}
-
-			err = repo.UpdateState(ctx, allRecords[1].Metadata, status)
+			rec, err := repo.GetByName(ctx, fmt.Sprintf("%s-2", metaInstanceidPrefix))
+			require.NoError(t, err)
+			err = repo.UpdateState(ctx, rec.Metadata, status)
 			require.NoError(t, err)
 			ve := uint64(1)
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
 				VersionEq: &ve,
 			})
 			require.NoError(t, err)
-			require.Len(t, records, 4) // 3 with operations and 1 with updated state
+			require.Len(t, records, 4)
 
-			ve += 1
+			ve += 2
 			records, err = repo.List(ctx, metainstance.MetaInstanceListFilters{
 				VersionEq: &ve,
 			})

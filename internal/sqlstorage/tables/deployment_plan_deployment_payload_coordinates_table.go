@@ -10,15 +10,14 @@ import (
 
 var deploymentPlanDeploymentPayloadCoordinatesTableMigrations = []simplesql.Migration{
 	{
-		Version: 14, // Update the version number sequentially.
+		Version: 12, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE deployment_plan_deployment_payload_coordinates (
 				deployment_plan_id VARCHAR(255) NOT NULL,
 				deployment_id VARCHAR(255) NOT NULL,
 				payload_name VARCHAR(255) NOT NULL,
 				coordinates TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-				PRIMARY KEY (deployment_plan_id, deployment_id, payload_name),
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				FOREIGN KEY (deployment_plan_id, payload_name) REFERENCES deployment_plan_application(deployment_plan_id, payload_name),
 				FOREIGN KEY (deployment_plan_id) REFERENCES deployment_plan(id) ON DELETE CASCADE
 			);

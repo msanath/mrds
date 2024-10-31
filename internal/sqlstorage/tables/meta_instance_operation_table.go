@@ -20,7 +20,7 @@ var metaInstanceOperationTableMigrations = []simplesql.Migration{
 				intent_id VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (id, meta_instance_id),
 				FOREIGN KEY (meta_instance_id) REFERENCES meta_instance(id) ON DELETE CASCADE
 			);

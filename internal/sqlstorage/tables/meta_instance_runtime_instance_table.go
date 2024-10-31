@@ -20,7 +20,7 @@ var metaInstanceRuntimeInstanceTableMigrations = []simplesql.Migration{
 				is_active BOOLEAN NOT NULL DEFAULT FALSE,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				FOREIGN KEY (meta_instance_id) REFERENCES meta_instance(id) ON DELETE CASCADE,
 				FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE
 			);

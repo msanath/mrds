@@ -11,7 +11,7 @@ import (
 
 var nodeDisruptionTableMigrations = []simplesql.Migration{
 	{
-		Version: 6, // Update the version number sequentially.
+		Version: 5, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE node_disruption (
 				id VARCHAR(255) NOT NULL,
@@ -20,7 +20,7 @@ var nodeDisruptionTableMigrations = []simplesql.Migration{
 				start_time BIGINT NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (id, node_id),
 				FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE
 			);

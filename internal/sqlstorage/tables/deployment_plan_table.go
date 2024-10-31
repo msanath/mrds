@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -10,7 +11,7 @@ import (
 
 var deploymentPlanTableMigrations = []simplesql.Migration{
 	{
-		Version: 4, // Update the version number sequentially.
+		Version: 7, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE deployment_plan (
 				id VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -18,10 +19,10 @@ var deploymentPlanTableMigrations = []simplesql.Migration{
 				name VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				namespace VARCHAR(255) NOT NULL,
 				service_name VARCHAR(255) NOT NULL,
-				UNIQUE (name, is_deleted)
+				UNIQUE (name, deleted_at)
 			);
 		`,
 		Down: `
@@ -34,16 +35,22 @@ type DeploymentPlanRow struct {
 	ID          string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version     uint64 `db:"version" orm:"op=create,update"`
 	Name        string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted   bool   `db:"is_deleted"`
+	DeletedAt   int64  `db:"deleted_at"`
 	State       string `db:"state" orm:"op=create,update filter=In,NotIn"`
 	Message     string `db:"message" orm:"op=create,update"`
 	Namespace   string `db:"namespace" orm:"op=create filter=In"`
 	ServiceName string `db:"service_name" orm:"op=create filter=In"`
 }
 
+type DeploymentPlanKeys struct {
+	ID   *string `db:"id"`
+	Name *string `db:"name"`
+}
+
 type DeploymentPlanTableUpdateFields struct {
-	State   *string `db:"state"`
-	Message *string `db:"message"`
+	State     *string `db:"state"`
+	Message   *string `db:"message"`
+	DeletedAt *int64  `db:"deleted_at"`
 }
 
 type DeploymentPlanTableSelectFilters struct {
@@ -79,18 +86,9 @@ func (s *DeploymentPlanTable) Insert(ctx context.Context, execer sqlx.ExecerCont
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *DeploymentPlanTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (DeploymentPlanRow, error) {
+func (s *DeploymentPlanTable) Get(ctx context.Context, keys DeploymentPlanKeys) (DeploymentPlanRow, error) {
 	var row DeploymentPlanRow
-	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
-	if err != nil {
-		return DeploymentPlanRow{}, err
-	}
-	return row, nil
-}
-
-func (s *DeploymentPlanTable) GetByName(ctx context.Context, name string) (DeploymentPlanRow, error) {
-	var row DeploymentPlanRow
-	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
+	err := s.Database.GetRowByKey(ctx, s.tableName, keys, &row)
 	if err != nil {
 		return DeploymentPlanRow{}, err
 	}
@@ -104,7 +102,10 @@ func (s *DeploymentPlanTable) Update(
 }
 
 func (s *DeploymentPlanTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
-	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
+	timeNow := time.Now().Unix()
+	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, DeploymentPlanTableUpdateFields{
+		DeletedAt: &timeNow,
+	})
 }
 
 func (s *DeploymentPlanTable) List(ctx context.Context, filters DeploymentPlanTableSelectFilters) ([]DeploymentPlanRow, error) {

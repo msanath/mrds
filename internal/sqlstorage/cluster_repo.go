@@ -57,7 +57,9 @@ func (s *clusterStorage) Insert(ctx context.Context, record cluster.ClusterRecor
 }
 
 func (s *clusterStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (cluster.ClusterRecord, error) {
-	row, err := s.clusterTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	row, err := s.clusterTable.Get(ctx, tables.ClusterTableKeys{
+		ID: &metadata.ID,
+	})
 	if err != nil {
 		return cluster.ClusterRecord{}, errHandler(err)
 	}
@@ -65,7 +67,9 @@ func (s *clusterStorage) GetByMetadata(ctx context.Context, metadata core.Metada
 }
 
 func (s *clusterStorage) GetByName(ctx context.Context, name string) (cluster.ClusterRecord, error) {
-	row, err := s.clusterTable.GetByName(ctx, name)
+	row, err := s.clusterTable.Get(ctx, tables.ClusterTableKeys{
+		Name: &name,
+	})
 	if err != nil {
 		return cluster.ClusterRecord{}, errHandler(err)
 	}
@@ -80,12 +84,20 @@ func (s *clusterStorage) UpdateState(ctx context.Context, metadata core.Metadata
 		State:   &state,
 		Message: &message,
 	}
-	return s.clusterTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	err := s.clusterTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *clusterStorage) Delete(ctx context.Context, metadata core.Metadata) error {
 	execer := s.DB
-	return s.clusterTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	err := s.clusterTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *clusterStorage) List(ctx context.Context, filters cluster.ClusterListFilters) ([]cluster.ClusterRecord, error) {

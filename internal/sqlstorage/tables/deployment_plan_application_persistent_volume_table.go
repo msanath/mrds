@@ -10,7 +10,7 @@ import (
 
 var deploymentPlanApplicationPersistentVolumeTableMigrations = []simplesql.Migration{
 	{
-		Version: 11, // Update the version number sequentially.
+		Version: 10, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE deployment_plan_application_persistent_volume (
 				deployment_plan_id VARCHAR(255) NOT NULL,
@@ -18,8 +18,7 @@ var deploymentPlanApplicationPersistentVolumeTableMigrations = []simplesql.Migra
 				storage_class VARCHAR(255) NOT NULL,
 				capacity INT NOT NULL,
 				mount_path VARCHAR(255) NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-				PRIMARY KEY (deployment_plan_id, payload_name, storage_class, mount_path),
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				FOREIGN KEY (deployment_plan_id, payload_name) REFERENCES deployment_plan_application(deployment_plan_id, payload_name) ON DELETE CASCADE
 			);
 		`,

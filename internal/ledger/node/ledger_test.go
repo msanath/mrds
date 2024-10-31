@@ -10,7 +10,6 @@ import (
 	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -155,19 +154,19 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
 		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: ""})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("GetByMetadata NotFound Failure", func(t *testing.T) {
 		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: "unknown"})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 }
 
@@ -208,19 +207,19 @@ func TestLedgerGetByName(t *testing.T) {
 	t.Run("GetByName InvalidName Failure", func(t *testing.T) {
 		resp, err := l.GetByName(context.Background(), "")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("GetByName NotFound Failure", func(t *testing.T) {
 		resp, err := l.GetByName(context.Background(), "unknown")
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 }
 
@@ -273,28 +272,28 @@ func TestLedgerUpdateStatus(t *testing.T) {
 
 		resp, err := l.UpdateStatus(context.Background(), updateReq)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 
 	t.Run("Update conflict Failure", func(t *testing.T) {
 		updateReq := &node.UpdateStatusRequest{
 			Metadata: createResp.Record.Metadata, // Using an older version.
 			Status: node.NodeStatus{
-				State:   node.NodeStateAllocating,
+				State:   node.NodeStateAllocated,
 				Message: "Node is Allocating now",
 			},
-			ClusterID: "test-cluster-2",
+			ClusterID: "test-cluster",
 		}
 
 		resp, err := l.UpdateStatus(context.Background(), updateReq)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
-		assert.Nil(t, resp)
+		require.Nil(t, resp)
 	})
 }
 
@@ -316,7 +315,7 @@ func TestLedgerList(t *testing.T) {
 		},
 	}
 	_, err := l.Create(context.Background(), req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req1 := &node.CreateRequest{
 		Name:         "test-node-1",
@@ -331,15 +330,15 @@ func TestLedgerList(t *testing.T) {
 		},
 	}
 	_, err = l.Create(context.Background(), req1)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// List the Nodes
 	listReq := &node.ListRequest{}
 	resp, err := l.List(context.Background(), listReq)
 
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Len(t, resp.Records, 2)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, resp.Records, 2)
 }
 
 func TestLedgerDelete(t *testing.T) {
@@ -360,15 +359,15 @@ func TestLedgerDelete(t *testing.T) {
 		},
 	}
 	createResp, err := l.Create(context.Background(), req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Now, delete the Node
 	err = l.Delete(context.Background(), &node.DeleteRequest{Metadata: createResp.Record.Metadata})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Try to get the Node again
 	_, err = l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
-	assert.Error(t, err)
+	require.Error(t, err)
 	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 	require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
 }

@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -18,8 +19,8 @@ var clusterTableMigrations = []simplesql.Migration{
 				name VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-				UNIQUE (id, name, is_deleted)
+				deleted_at BIGINT NOT NULL DEFAULT 0,
+				UNIQUE (name, deleted_at)
 			);
 		`,
 		Down: `
@@ -31,15 +32,21 @@ var clusterTableMigrations = []simplesql.Migration{
 type ClusterRow struct {
 	ID        string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version   uint64 `db:"version" orm:"op=create,update"`
-	Name      string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted bool   `db:"is_deleted"`
+	Name      string `db:"name" orm:"op=create composite_unique_key:name,deleted_at filter=In"`
+	DeletedAt int64  `db:"deleted_at"`
 	State     string `db:"state" orm:"op=create,update filter=In,NotIn"`
 	Message   string `db:"message" orm:"op=create,update"`
 }
 
+type ClusterTableKeys struct {
+	ID   *string `db:"id"`
+	Name *string `db:"name"`
+}
+
 type ClusterTableUpdateFields struct {
-	State   *string `db:"state"`
-	Message *string `db:"message"`
+	State     *string `db:"state"`
+	Message   *string `db:"message"`
+	DeletedAt *int64  `db:"deleted_at"`
 }
 
 type ClusterTableSelectFilters struct {
@@ -73,18 +80,9 @@ func (s *ClusterTable) Insert(ctx context.Context, execer sqlx.ExecerContext, ro
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *ClusterTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (ClusterRow, error) {
+func (s *ClusterTable) Get(ctx context.Context, keys ClusterTableKeys) (ClusterRow, error) {
 	var row ClusterRow
-	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
-	if err != nil {
-		return ClusterRow{}, err
-	}
-	return row, nil
-}
-
-func (s *ClusterTable) GetByName(ctx context.Context, name string) (ClusterRow, error) {
-	var row ClusterRow
-	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
+	err := s.Database.GetRowByKey(ctx, s.tableName, keys, &row)
 	if err != nil {
 		return ClusterRow{}, err
 	}
@@ -98,7 +96,10 @@ func (s *ClusterTable) Update(
 }
 
 func (s *ClusterTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
-	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
+	timeNow := time.Now().Unix()
+	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, ClusterTableUpdateFields{
+		DeletedAt: &timeNow,
+	})
 }
 
 func (s *ClusterTable) List(ctx context.Context, filters ClusterTableSelectFilters) ([]ClusterRow, error) {

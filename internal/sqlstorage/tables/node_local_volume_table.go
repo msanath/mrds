@@ -10,14 +10,14 @@ import (
 
 var nodeLocalVolumeTableMigrations = []simplesql.Migration{
 	{
-		Version: 7, // Update the version number sequentially.
+		Version: 4, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE node_local_volume (
 				node_id VARCHAR(255) NOT NULL,
 				mount_path VARCHAR(255) NOT NULL,
 				storage_class VARCHAR(255) NOT NULL,
 				storage_capacity INT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (node_id, mount_path),
 				FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE
 			);

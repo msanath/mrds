@@ -229,7 +229,9 @@ func (s *deploymentPlanStorage) Insert(ctx context.Context, record deploymentpla
 }
 
 func (s *deploymentPlanStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (deploymentplan.DeploymentPlanRecord, error) {
-	row, err := s.deploymentPlanTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	row, err := s.deploymentPlanTable.Get(ctx, tables.DeploymentPlanKeys{
+		ID: &metadata.ID,
+	})
 	if err != nil {
 		return deploymentplan.DeploymentPlanRecord{}, errHandler(err)
 	}
@@ -237,7 +239,9 @@ func (s *deploymentPlanStorage) GetByMetadata(ctx context.Context, metadata core
 }
 
 func (s *deploymentPlanStorage) GetByName(ctx context.Context, name string) (deploymentplan.DeploymentPlanRecord, error) {
-	row, err := s.deploymentPlanTable.GetByName(ctx, name)
+	row, err := s.deploymentPlanTable.Get(ctx, tables.DeploymentPlanKeys{
+		Name: &name,
+	})
 	if err != nil {
 		return deploymentplan.DeploymentPlanRecord{}, errHandler(err)
 	}
@@ -322,12 +326,20 @@ func (s *deploymentPlanStorage) UpdateState(ctx context.Context, metadata core.M
 		State:   &state,
 		Message: &message,
 	}
-	return s.deploymentPlanTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	err := s.deploymentPlanTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *deploymentPlanStorage) Delete(ctx context.Context, metadata core.Metadata) error {
 	execer := s.DB
-	return s.deploymentPlanTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	err := s.deploymentPlanTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *deploymentPlanStorage) List(ctx context.Context, filters deploymentplan.DeploymentPlanListFilters) ([]deploymentplan.DeploymentPlanRecord, error) {

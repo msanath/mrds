@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -10,7 +11,7 @@ import (
 
 var metaInstanceTableMigrations = []simplesql.Migration{
 	{
-		Version: 5, // Update the version number sequentially.
+		Version: 14, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE meta_instance (
 				id VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -18,10 +19,10 @@ var metaInstanceTableMigrations = []simplesql.Migration{
 				name VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				deployment_plan_id VARCHAR(255) NOT NULL,
 				deployment_id VARCHAR(255) NOT NULL,
-				UNIQUE (name, is_deleted),
+				UNIQUE (name, deleted_at),
 				FOREIGN KEY (deployment_plan_id) REFERENCES deployment_plan(id) ON DELETE CASCADE,
 				FOREIGN KEY (deployment_id) REFERENCES deployment_plan_deployment(id) ON DELETE CASCADE
 			);
@@ -35,18 +36,24 @@ var metaInstanceTableMigrations = []simplesql.Migration{
 type MetaInstanceRow struct {
 	ID               string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version          uint64 `db:"version" orm:"op=create,update"`
-	Name             string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted        bool   `db:"is_deleted"`
+	Name             string `db:"name" orm:"op=create composite_unique_key:name,deleted_at filter=In"`
+	DeletedAt        int64  `db:"deleted_at"`
 	State            string `db:"state" orm:"op=create,update filter=In,NotIn"`
 	Message          string `db:"message" orm:"op=create,update"`
 	DeploymentPlanID string `db:"deployment_plan_id" orm:"op=create filter=In"`
 	DeploymentID     string `db:"deployment_id" orm:"op=create,update filter=In"`
 }
 
+type MetaInstanceKeys struct {
+	ID   *string `db:"id"`
+	Name *string `db:"name"`
+}
+
 type MetaInstanceTableUpdateFields struct {
 	State        *string `db:"state"`
 	Message      *string `db:"message"`
 	DeploymentID *string `db:"deployment_id"`
+	DeletedAt    *int64  `db:"deleted_at"`
 }
 
 type MetaInstanceTableSelectFilters struct {
@@ -82,18 +89,9 @@ func (s *MetaInstanceTable) Insert(ctx context.Context, execer sqlx.ExecerContex
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *MetaInstanceTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (MetaInstanceRow, error) {
+func (s *MetaInstanceTable) Get(ctx context.Context, keys MetaInstanceKeys) (MetaInstanceRow, error) {
 	var row MetaInstanceRow
-	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
-	if err != nil {
-		return MetaInstanceRow{}, err
-	}
-	return row, nil
-}
-
-func (s *MetaInstanceTable) GetByName(ctx context.Context, name string) (MetaInstanceRow, error) {
-	var row MetaInstanceRow
-	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
+	err := s.Database.GetRowByKey(ctx, s.tableName, keys, &row)
 	if err != nil {
 		return MetaInstanceRow{}, err
 	}
@@ -107,7 +105,10 @@ func (s *MetaInstanceTable) Update(
 }
 
 func (s *MetaInstanceTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
-	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
+	timeNow := time.Now().Unix()
+	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, MetaInstanceTableUpdateFields{
+		DeletedAt: &timeNow,
+	})
 }
 
 func (s *MetaInstanceTable) List(ctx context.Context, filters MetaInstanceTableSelectFilters) ([]MetaInstanceRow, error) {

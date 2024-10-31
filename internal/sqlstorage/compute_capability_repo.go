@@ -62,7 +62,9 @@ func (s *computeCapabilityStorage) Insert(ctx context.Context, record computecap
 }
 
 func (s *computeCapabilityStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (computecapability.ComputeCapabilityRecord, error) {
-	row, err := s.computeCapabilityTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	row, err := s.computeCapabilityTable.Get(ctx, tables.ComputeCapabilityKeys{
+		ID: &metadata.ID,
+	})
 	if err != nil {
 		return computecapability.ComputeCapabilityRecord{}, errHandler(err)
 	}
@@ -70,7 +72,9 @@ func (s *computeCapabilityStorage) GetByMetadata(ctx context.Context, metadata c
 }
 
 func (s *computeCapabilityStorage) GetByName(ctx context.Context, computeCapabilityName string) (computecapability.ComputeCapabilityRecord, error) {
-	row, err := s.computeCapabilityTable.GetByName(ctx, computeCapabilityName)
+	row, err := s.computeCapabilityTable.Get(ctx, tables.ComputeCapabilityKeys{
+		Name: &computeCapabilityName,
+	})
 	if err != nil {
 		return computecapability.ComputeCapabilityRecord{}, errHandler(err)
 	}
@@ -85,12 +89,20 @@ func (s *computeCapabilityStorage) UpdateState(ctx context.Context, metadata cor
 		State:   &state,
 		Message: &message,
 	}
-	return s.computeCapabilityTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	err := s.computeCapabilityTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *computeCapabilityStorage) Delete(ctx context.Context, metadata core.Metadata) error {
 	execer := s.DB
-	return s.computeCapabilityTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	err := s.computeCapabilityTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *computeCapabilityStorage) List(ctx context.Context, filters computecapability.ComputeCapabilityListFilters) ([]computecapability.ComputeCapabilityRecord, error) {

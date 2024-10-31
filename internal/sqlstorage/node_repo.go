@@ -165,7 +165,9 @@ func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error 
 }
 
 func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (node.NodeRecord, error) {
-	nodeRow, err := s.nodeTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
+		ID: &metadata.ID,
+	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
@@ -208,7 +210,9 @@ func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata)
 }
 
 func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.NodeRecord, error) {
-	nodeRow, err := s.nodeTable.GetByName(ctx, nodeName)
+	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
+		Name: &nodeName,
+	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}

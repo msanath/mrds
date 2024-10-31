@@ -1,6 +1,8 @@
 package tables
 
-import "github.com/msanath/gondolf/pkg/simplesql"
+import (
+	"github.com/msanath/gondolf/pkg/simplesql"
+)
 
 func Initialize(simpleDB simplesql.Database) error {
 	var schemaMigrations = []simplesql.Migration{}

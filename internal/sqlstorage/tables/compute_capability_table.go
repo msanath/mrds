@@ -2,6 +2,7 @@ package tables
 
 import (
 	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -18,10 +19,10 @@ var computeCapabilityTableMigrations = []simplesql.Migration{
 				name VARCHAR(255) NOT NULL,
 				state VARCHAR(255) NOT NULL,
 				message TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				type VARCHAR(255) NOT NULL,
 				score BIGINT NOT NULL,
-				UNIQUE (id, name, is_deleted)
+				UNIQUE (name, deleted_at)
 			);
 		`,
 		Down: `
@@ -34,7 +35,7 @@ type ComputeCapabilityRow struct {
 	ID        string `db:"id" orm:"op=create key=primary_key filter=In"`
 	Version   uint64 `db:"version" orm:"op=create,update"`
 	Name      string `db:"name" orm:"op=create composite_unique_key:Name,isDeleted filter=In"`
-	IsDeleted bool   `db:"is_deleted"`
+	DeletedAt int64  `db:"deleted_at"`
 	State     string `db:"state" orm:"op=create,update filter=In,NotIn"`
 	Message   string `db:"message" orm:"op=create,update"`
 
@@ -42,9 +43,15 @@ type ComputeCapabilityRow struct {
 	Score uint32 `db:"score" orm:"op=create,update"`
 }
 
+type ComputeCapabilityKeys struct {
+	ID   *string `db:"id"`
+	Name *string `db:"name"`
+}
+
 type ComputeCapabilityTableUpdateFields struct {
-	State   *string `db:"state"`
-	Message *string `db:"message"`
+	State     *string `db:"state"`
+	Message   *string `db:"message"`
+	DeletedAt *int64  `db:"deleted_at"`
 }
 
 type ComputeCapabilityTableSelectFilters struct {
@@ -80,18 +87,9 @@ func (s *ComputeCapabilityTable) Insert(ctx context.Context, execer sqlx.ExecerC
 	return s.Database.InsertRow(ctx, execer, s.tableName, row)
 }
 
-func (s *ComputeCapabilityTable) GetByIDAndVersion(ctx context.Context, id string, version uint64, isDeleted bool) (ComputeCapabilityRow, error) {
+func (s *ComputeCapabilityTable) Get(ctx context.Context, keys ComputeCapabilityKeys) (ComputeCapabilityRow, error) {
 	var row ComputeCapabilityRow
-	err := s.Database.GetRowByID(ctx, id, version, isDeleted, s.tableName, &row)
-	if err != nil {
-		return ComputeCapabilityRow{}, err
-	}
-	return row, nil
-}
-
-func (s *ComputeCapabilityTable) GetByName(ctx context.Context, name string) (ComputeCapabilityRow, error) {
-	var row ComputeCapabilityRow
-	err := s.Database.GetRowByName(ctx, name, s.tableName, &row)
+	err := s.Database.GetRowByKey(ctx, s.tableName, keys, &row)
 	if err != nil {
 		return ComputeCapabilityRow{}, err
 	}
@@ -105,7 +103,10 @@ func (s *ComputeCapabilityTable) Update(
 }
 
 func (s *ComputeCapabilityTable) Delete(ctx context.Context, execer sqlx.ExecerContext, id string, version uint64) error {
-	return s.Database.MarkRowAsDeleted(ctx, execer, id, version, s.tableName)
+	timeNow := time.Now().Unix()
+	return s.Database.UpdateRow(ctx, execer, id, version, s.tableName, ComputeCapabilityTableUpdateFields{
+		DeletedAt: &timeNow,
+	})
 }
 
 func (s *ComputeCapabilityTable) List(ctx context.Context, filters ComputeCapabilityTableSelectFilters) ([]ComputeCapabilityRow, error) {

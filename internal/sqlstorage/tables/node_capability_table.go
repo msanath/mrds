@@ -10,12 +10,12 @@ import (
 
 var nodeCapabilityTableMigrations = []simplesql.Migration{
 	{
-		Version: 8, // Update the version number sequentially.
+		Version: 6, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE node_capability (
 				node_id VARCHAR(255) NOT NULL,
 				capability_id VARCHAR(255) NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (node_id, capability_id),
 				FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE
 			);

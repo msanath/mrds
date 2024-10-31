@@ -10,16 +10,15 @@ import (
 
 var deploymentPlanApplicationPortTableMigrations = []simplesql.Migration{
 	{
-		Version: 10, // Update the version number sequentially.
+		Version: 9, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE deployment_plan_application_port (
 				deployment_plan_id VARCHAR(255) NOT NULL,
 				payload_name VARCHAR(255) NOT NULL,
 				protocol VARCHAR(255) NOT NULL,
 				port INT NOT NULL,
-				PRIMARY KEY (deployment_plan_id, payload_name, protocol, port),
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				FOREIGN KEY (deployment_plan_id, payload_name) REFERENCES deployment_plan_application(deployment_plan_id, payload_name) ON DELETE CASCADE
-
 			);
 		`,
 		Down: `

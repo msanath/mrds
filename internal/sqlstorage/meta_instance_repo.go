@@ -111,7 +111,9 @@ func (s *metaInstanceStorage) Insert(ctx context.Context, record metainstance.Me
 }
 
 func (s *metaInstanceStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (metainstance.MetaInstanceRecord, error) {
-	row, err := s.metaInstanceTable.GetByIDAndVersion(ctx, metadata.ID, metadata.Version, metadata.IsDeleted)
+	row, err := s.metaInstanceTable.Get(ctx, tables.MetaInstanceKeys{
+		ID: &metadata.ID,
+	})
 	if err != nil {
 		return metainstance.MetaInstanceRecord{}, errHandler(err)
 	}
@@ -119,7 +121,9 @@ func (s *metaInstanceStorage) GetByMetadata(ctx context.Context, metadata core.M
 }
 
 func (s *metaInstanceStorage) GetByName(ctx context.Context, name string) (metainstance.MetaInstanceRecord, error) {
-	row, err := s.metaInstanceTable.GetByName(ctx, name)
+	row, err := s.metaInstanceTable.Get(ctx, tables.MetaInstanceKeys{
+		Name: &name,
+	})
 	if err != nil {
 		return metainstance.MetaInstanceRecord{}, errHandler(err)
 	}
@@ -160,7 +164,11 @@ func (s *metaInstanceStorage) UpdateState(ctx context.Context, metadata core.Met
 		State:   &state,
 		Message: &message,
 	}
-	return s.metaInstanceTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	err := s.metaInstanceTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *metaInstanceStorage) UpdateDeploymentID(ctx context.Context, metadata core.Metadata, deploymentID string) error {
@@ -168,12 +176,20 @@ func (s *metaInstanceStorage) UpdateDeploymentID(ctx context.Context, metadata c
 	updateFields := tables.MetaInstanceTableUpdateFields{
 		DeploymentID: &deploymentID,
 	}
-	return s.metaInstanceTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	err := s.metaInstanceTable.Update(ctx, execer, metadata.ID, metadata.Version, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *metaInstanceStorage) Delete(ctx context.Context, metadata core.Metadata) error {
 	execer := s.DB
-	return s.metaInstanceTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	err := s.metaInstanceTable.Delete(ctx, execer, metadata.ID, metadata.Version)
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
 }
 
 func (s *metaInstanceStorage) List(ctx context.Context, filters metainstance.MetaInstanceListFilters) ([]metainstance.MetaInstanceRecord, error) {

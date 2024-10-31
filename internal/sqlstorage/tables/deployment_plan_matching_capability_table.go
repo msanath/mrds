@@ -17,7 +17,7 @@ var deploymentPlanMatchingCapabilityTableMigrations = []simplesql.Migration{
 				capability_type VARCHAR(255) NOT NULL,
 				comparator VARCHAR(255) NOT NULL,
 				capability_names TEXT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (deployment_plan_id, capability_type),
 				FOREIGN KEY (deployment_plan_id) REFERENCES deployment_plan(id) ON DELETE CASCADE
 			);

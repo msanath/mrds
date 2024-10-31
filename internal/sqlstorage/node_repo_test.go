@@ -66,7 +66,10 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Insert Duplicate Failure", func(t *testing.T) {
-		err = repo.Insert(ctx, testRecord)
+		newRecord := testRecord
+		// Change the ID to create a duplicate record.
+		newRecord.Metadata.ID = fmt.Sprintf("%s2", nodeidPrefix)
+		err = repo.Insert(ctx, newRecord)
 		require.Error(t, err)
 		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
 	})
@@ -83,16 +86,6 @@ func TestNodeRecordLifecycle(t *testing.T) {
 		require.Equal(t, testRecord.RemainingResources, receivedRecord.RemainingResources)
 		require.ElementsMatch(t, testRecord.LocalVolumes, receivedRecord.LocalVolumes)
 		require.ElementsMatch(t, testRecord.CapabilityIDs, receivedRecord.CapabilityIDs)
-	})
-
-	t.Run("Get By Metadata failure", func(t *testing.T) {
-		metadata := core.Metadata{
-			ID:      testRecord.Metadata.ID,
-			Version: 2, // Different version
-		}
-		_, err := repo.GetByMetadata(ctx, metadata)
-		require.Error(t, err)
-		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code, err.Error())
 	})
 
 	t.Run("Get By Name Success", func(t *testing.T) {

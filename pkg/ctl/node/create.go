@@ -100,11 +100,10 @@ func (o *nodeCreateOptions) run(ctx context.Context) error {
 			CapabilityIds:           node.CapabilityIDs,
 			LocalVolumes:            localVolumes,
 		})
-		createdNodes = append(createdNodes, resp.Record)
-
 		if err != nil {
 			return err
 		}
+		createdNodes = append(createdNodes, resp.Record)
 	}
 	displayNodes := make([]types.DisplayNode, 0, len(createdNodes))
 	for _, n := range createdNodes {

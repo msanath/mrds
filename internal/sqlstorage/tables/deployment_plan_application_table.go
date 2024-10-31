@@ -10,14 +10,14 @@ import (
 
 var deploymentPlanApplicationTableMigrations = []simplesql.Migration{
 	{
-		Version: 9, // Update the version number sequentially.
+		Version: 8, // Update the version number sequentially.
 		Up: `
 			CREATE TABLE deployment_plan_application (
 				deployment_plan_id VARCHAR(255) NOT NULL,
 				payload_name VARCHAR(255) NOT NULL,
 				cores INT NOT NULL,
 				memory INT NOT NULL,
-				is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+				deleted_at BIGINT NOT NULL DEFAULT 0,
 				PRIMARY KEY (deployment_plan_id, payload_name),
 				FOREIGN KEY (deployment_plan_id) REFERENCES deployment_plan(id) ON DELETE CASCADE
 			);
