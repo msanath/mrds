@@ -22,12 +22,12 @@ var nodeTableMigrations = []simplesql.Migration{
 				deleted_at BIGINT NOT NULL DEFAULT 0,
 				update_domain VARCHAR(255) NOT NULL,
 				cluster_id VARCHAR(255) NOT NULL,
-				total_cores INT NOT NULL,
-				total_memory INT NOT NULL,
-				system_reserved_cores INT NOT NULL,
-				system_reserved_memory INT NOT NULL,
-				remaning_cores INT NOT NULL,
-				remaning_memory INT NOT NULL,
+				total_cores UNSIGNED INT NOT NULL,
+				total_memory UNSIGNED INT NOT NULL,
+				system_reserved_cores UNSIGNED INT NOT NULL,
+				system_reserved_memory UNSIGNED INT NOT NULL,
+				remaning_cores UNSIGNED INT NOT NULL,
+				remaning_memory UNSIGNED INT NOT NULL,
 				UNIQUE (name, deleted_at)
 			);
 		`,
@@ -60,10 +60,12 @@ type NodeKeys struct {
 }
 
 type NodeUpdateFields struct {
-	State     *string `db:"state"`
-	Message   *string `db:"message"`
-	ClusterID *string `db:"cluster_id"`
-	DeletedAt *int64  `db:"deleted_at"`
+	State           *string `db:"state"`
+	Message         *string `db:"message"`
+	ClusterID       *string `db:"cluster_id"`
+	DeletedAt       *int64  `db:"deleted_at"`
+	RemainingCores  *uint32 `db:"remaning_cores"`
+	RemainingMemory *uint32 `db:"remaning_memory"`
 }
 
 type NodeSelectFilters struct {

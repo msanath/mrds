@@ -30,7 +30,7 @@ func TestMetaInstanceServer(t *testing.T) {
 				PayloadName: "test-payload",
 				Resources: &mrdspb.ApplicationResources{
 					Cores:  1,
-					Memory: 1023,
+					Memory: 200,
 				},
 				PersistentVolumes: []*mrdspb.ApplicationPersistentVolume{
 					{

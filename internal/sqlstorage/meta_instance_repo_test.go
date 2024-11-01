@@ -28,6 +28,15 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			Version: 1,
 		},
 		Name: "dp1",
+		Applications: []deploymentplan.Application{
+			{
+				PayloadName: "app1",
+				Resources: deploymentplan.ApplicationResources{
+					Cores:  12,
+					Memory: 64,
+				},
+			},
+		},
 	})
 	require.NoError(t, err)
 
@@ -141,7 +150,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 		err = repo.InsertRuntimeInstance(ctx, testRecord.Metadata, runtimeInstance)
 		require.Error(t, err)
-		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
+		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)
 	})
 
 	t.Run("Add Runtime Instance Success", func(t *testing.T) {
@@ -152,6 +161,18 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 				Version: 1,
 			},
 			Name: "node1",
+			TotalResources: node.Resources{
+				Cores:  50,
+				Memory: 256,
+			},
+			SystemReservedResources: node.Resources{
+				Cores:  2,
+				Memory: 8,
+			},
+			RemainingResources: node.Resources{
+				Cores:  48,
+				Memory: 248,
+			},
 			Status: node.NodeStatus{
 				State:   node.NodeStateAllocated,
 				Message: "Node is active",
@@ -177,6 +198,55 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		require.Equal(t, runtimeInstance, updatedRecord.RuntimeInstances[0])
 		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
 		testRecord = updatedRecord
+
+		node, err := storage.Node.GetByID(ctx, "node1")
+		require.NoError(t, err)
+		// Node has 48 cores and 248 memory remaining. The app uses 12 cores and 64 memory.
+		// After the runtime instance is added, the remaining resources should be 48-12=36 cores and 248-64=184 memory.
+		require.Equal(t, node.RemainingResources.Cores, uint32(36))
+		require.Equal(t, node.RemainingResources.Memory, uint32(184))
+	})
+
+	t.Run("Add Runtime Instance when no remaining failure", func(t *testing.T) {
+		// Create a node
+		storage.Node.Insert(ctx, node.NodeRecord{
+			Metadata: core.Metadata{
+				ID:      "node2",
+				Version: 1,
+			},
+			Name: "node2",
+			TotalResources: node.Resources{
+				Cores:  50,
+				Memory: 256,
+			},
+			SystemReservedResources: node.Resources{
+				Cores:  2,
+				Memory: 8,
+			},
+			RemainingResources: node.Resources{
+				Cores:  1,
+				Memory: 1,
+			},
+			Status: node.NodeStatus{
+				State:   node.NodeStateAllocated,
+				Message: "Node is active",
+			},
+		})
+
+		runtimeInstance := metainstance.RuntimeInstance{
+			ID:       "ri2",
+			NodeID:   "node2",
+			IsActive: true,
+			Status: metainstance.RuntimeInstanceStatus{
+				State:   metainstance.RuntimeStateRunning,
+				Message: "In progress",
+			},
+		}
+
+		err = repo.InsertRuntimeInstance(ctx, testRecord.Metadata, runtimeInstance)
+		require.Error(t, err)
+		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
+		require.ErrorContains(t, err, "does not have enough")
 	})
 
 	t.Run("Update Runtime Instance Status Success", func(t *testing.T) {
@@ -206,6 +276,13 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		require.Len(t, updatedRecord.RuntimeInstances, 0)
 		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
 		testRecord = updatedRecord
+
+		node, err := storage.Node.GetByID(ctx, "node1")
+		require.NoError(t, err)
+		// Node has 48 cores and 248 memory remaining. The app uses 12 cores and 64 memory.
+		// After the runtime instance is deleted, the remaining resources should be back to 48 cores and 248 memory.
+		require.Equal(t, node.RemainingResources.Cores, uint32(48))
+		require.Equal(t, node.RemainingResources.Memory, uint32(248))
 	})
 
 	t.Run("Operation Status Update Success", func(t *testing.T) {

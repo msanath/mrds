@@ -2,9 +2,11 @@ package sqlstorage
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/msanath/gondolf/pkg/simplesql"
 	"github.com/msanath/mrds/internal/ledger/core"
+	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/ledger/metainstance"
 	"github.com/msanath/mrds/internal/sqlstorage/tables"
 )
@@ -15,6 +17,8 @@ type metaInstanceStorage struct {
 	metaInstanceTable                *tables.MetaInstanceTable
 	metaInstanceOperationTable       *tables.MetaInstanceOperationTable
 	metaInstanceRuntimeInstanceTable *tables.MetaInstanceRuntimeInstanceTable
+	deploymentPlanApplicationTable   *tables.DeploymentPlanApplicationTable
+	nodeTable                        *tables.NodeTable
 }
 
 // newMetaInstanceStorage creates a new storage instance satisfying the MetaInstanceRepository interface
@@ -24,6 +28,8 @@ func newMetaInstanceStorage(db simplesql.Database) metainstance.Repository {
 		metaInstanceTable:                tables.NewMetaInstanceTable(db),
 		metaInstanceOperationTable:       tables.NewMetaInstanceOperationTable(db),
 		metaInstanceRuntimeInstanceTable: tables.NewMetaInstanceRuntimeInstanceTable(db),
+		deploymentPlanApplicationTable:   tables.NewDeploymentPlanApplicationTable(db),
+		nodeTable:                        tables.NewNodeTable(db),
 	}
 }
 
@@ -137,7 +143,7 @@ func (s *metaInstanceStorage) getByPartialRecord(ctx context.Context, metaInstan
 		MetaInstanceIDIn: []string{record.Metadata.ID},
 	})
 	if err != nil {
-		return record, err
+		return record, errHandler(err)
 	}
 	for _, row := range operationRows {
 		record.Operations = append(record.Operations, metaInstanceOperationRowToModel(row))
@@ -147,7 +153,7 @@ func (s *metaInstanceStorage) getByPartialRecord(ctx context.Context, metaInstan
 		MetaInstanceIDIn: []string{record.Metadata.ID},
 	})
 	if err != nil {
-		return record, err
+		return record, errHandler(err)
 	}
 	for _, row := range runtimeInstanceRows {
 		record.RuntimeInstances = append(record.RuntimeInstances, metaInstanceRuntimeInstanceRowToModel(row))
@@ -338,6 +344,36 @@ func (s *metaInstanceStorage) DeleteOperation(ctx context.Context, metadata core
 }
 
 func (s *metaInstanceStorage) InsertRuntimeInstance(ctx context.Context, metadata core.Metadata, runtimeInstance metainstance.RuntimeInstance) error {
+	// Get the associated metaInstance Record.
+	// Now get the sum of all the cores and memory for all applications in the deployment plan.
+	// This will be used to check if the node has enough resources to run the application.
+	// TODO: Optimize this
+	metaInstanceRow, err := s.metaInstanceTable.Get(ctx, tables.MetaInstanceKeys{
+		ID: &metadata.ID,
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+	applicationRows, err := s.deploymentPlanApplicationTable.List(ctx, tables.DeploymentPlanApplicationTableSelectFilters{
+		DeploymentPlanIDIn: []string{metaInstanceRow.DeploymentPlanID},
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+	requestedCores := uint32(0)
+	requestedMemory := uint32(0)
+	for _, app := range applicationRows {
+		requestedCores += app.Cores
+		requestedMemory += app.Memory
+	}
+
+	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
+		ID: &runtimeInstance.NodeID,
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+
 	tx, err := s.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return errHandler(err)
@@ -346,6 +382,31 @@ func (s *metaInstanceStorage) InsertRuntimeInstance(ctx context.Context, metadat
 
 	execer := tx
 	err = s.metaInstanceRuntimeInstanceTable.Insert(ctx, execer, metaInstanceRuntimeInstanceRecordToRow(metadata.ID, runtimeInstance))
+	if err != nil {
+		return errHandler(err)
+	}
+
+	if nodeRow.RemainingCores < requestedCores {
+		return ledgererrors.NewLedgerError(
+			ledgererrors.ErrRecordInsertConflict,
+			fmt.Sprintf("Node does not have enough cores to run the application. Requested: %d, Available: %d", requestedCores, nodeRow.RemainingCores),
+		)
+	}
+
+	if nodeRow.RemainingMemory < requestedMemory {
+		return ledgererrors.NewLedgerError(
+			ledgererrors.ErrRecordInsertConflict,
+			fmt.Sprintf("Node does not have enough memory to run the application. Requested: %d, Available: %d", requestedMemory, nodeRow.RemainingMemory),
+		)
+	}
+	newRemainingCores := nodeRow.RemainingCores - requestedCores
+	newRemainingMemory := nodeRow.RemainingMemory - requestedMemory
+
+	updateFields := tables.NodeUpdateFields{
+		RemainingCores:  &newRemainingCores,
+		RemainingMemory: &newRemainingMemory,
+	}
+	err = s.nodeTable.Update(ctx, execer, nodeRow.ID, nodeRow.Version, updateFields)
 	if err != nil {
 		return errHandler(err)
 	}
@@ -397,6 +458,58 @@ func (s *metaInstanceStorage) UpdateRuntimeInstanceStatus(ctx context.Context, m
 }
 
 func (s *metaInstanceStorage) DeleteRuntimeInstance(ctx context.Context, metadata core.Metadata, runtimeInstanceID string) error {
+	// Get the associated metaInstance Record.
+	// Now get the sum of all the cores and memory for all applications in the deployment plan.
+	// This will be used to check if the node has enough resources to run the application.
+	// TODO: Optimize this
+	metaInstanceRow, err := s.metaInstanceTable.Get(ctx, tables.MetaInstanceKeys{
+		ID: &metadata.ID,
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+	applicationRows, err := s.deploymentPlanApplicationTable.List(ctx, tables.DeploymentPlanApplicationTableSelectFilters{
+		DeploymentPlanIDIn: []string{metaInstanceRow.DeploymentPlanID},
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+	requestedCores := uint32(0)
+	requestedMemory := uint32(0)
+	for _, app := range applicationRows {
+		requestedCores += app.Cores
+		requestedMemory += app.Memory
+	}
+
+	// Get the corresponding runtimee instance
+	runtimeInstanceRows, err := s.metaInstanceRuntimeInstanceTable.List(ctx, tables.MetaInstanceRuntimeInstanceTableSelectFilters{
+		MetaInstanceIDIn: []string{metaInstanceRow.ID},
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+	found := false
+	var runtimeInstanceRow tables.MetaInstanceRuntimeInstanceRow
+	for _, row := range runtimeInstanceRows {
+		if row.ID == runtimeInstanceID {
+			found = true
+			runtimeInstanceRow = row
+			break
+		}
+	}
+	if !found {
+		return ledgererrors.NewLedgerError(
+			ledgererrors.ErrRecordNotFound,
+			"Runtime instance not found.",
+		)
+	}
+	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
+		ID: &runtimeInstanceRow.NodeID,
+	})
+	if err != nil {
+		return errHandler(err)
+	}
+
 	tx, err := s.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return errHandler(err)
@@ -405,6 +518,19 @@ func (s *metaInstanceStorage) DeleteRuntimeInstance(ctx context.Context, metadat
 
 	execer := tx
 	err = s.metaInstanceRuntimeInstanceTable.Delete(ctx, execer, runtimeInstanceID, metadata.ID)
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// Add the resources back to the node
+	newRemainingCores := nodeRow.RemainingCores + requestedCores
+	newRemainingMemory := nodeRow.RemainingMemory + requestedMemory
+
+	updateFields := tables.NodeUpdateFields{
+		RemainingCores:  &newRemainingCores,
+		RemainingMemory: &newRemainingMemory,
+	}
+	err = s.nodeTable.Update(ctx, execer, nodeRow.ID, nodeRow.Version, updateFields)
 	if err != nil {
 		return errHandler(err)
 	}

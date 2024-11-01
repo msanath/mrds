@@ -16,7 +16,7 @@ plans:
       - payloadName: "app1"
         resources:
           cores: 4
-          memory: 8192
+          memory: 256
         ports:
           - protocol: "TCP"
             port: 80
