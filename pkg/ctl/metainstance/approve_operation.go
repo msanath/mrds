@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/metainstance/getter"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -16,6 +17,7 @@ type approveOperationOptions struct {
 
 	client  mrdspb.MetaInstancesClient
 	printer *printer.Printer
+	getter  *getter.Getter
 }
 
 func newApproveOperationCmd() *cobra.Command {
@@ -32,6 +34,7 @@ func newApproveOperationCmd() *cobra.Command {
 			}
 			o.client = mrdspb.NewMetaInstancesClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 
 			return o.Run(cmd.Context())
 		},
@@ -67,7 +70,12 @@ func (o approveOperationOptions) Run(ctx context.Context) error {
 		o.printer.PrintError("Operation ID not found in meta instance")
 	}
 
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(metaInstanceResp.Record))
+	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, metaInstanceResp.Record)
+	if err != nil {
+		return err
+	}
+
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	o.printer.PrintEmptyLine()
 	if !o.printer.SeekConfirmation("Are you sure you want to approve this operation?") {
 		o.printer.PrintWarning("Operation cancelled")
@@ -87,6 +95,11 @@ func (o approveOperationOptions) Run(ctx context.Context) error {
 	}
 
 	o.printer.PrintSuccess("Request sent to swap")
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(updateResp.Record))
+	o.printer.PrintEmptyLine()
+	displayRecord, err = o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	if err != nil {
+		return err
+	}
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	return nil
 }

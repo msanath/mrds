@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/metainstance/getter"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -16,6 +17,7 @@ type swapInstanceOptions struct {
 
 	client  mrdspb.MetaInstancesClient
 	printer *printer.Printer
+	getter  *getter.Getter
 }
 
 func newSwapInstanceCmd() *cobra.Command {
@@ -32,6 +34,7 @@ func newSwapInstanceCmd() *cobra.Command {
 			}
 			o.client = mrdspb.NewMetaInstancesClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 
 			return o.Run(cmd.Context())
 		},
@@ -50,7 +53,11 @@ func (o swapInstanceOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(metaInstanceResp.Record))
+	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, metaInstanceResp.Record)
+	if err != nil {
+		return err
+	}
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	o.printer.PrintEmptyLine()
 	if !o.printer.SeekConfirmation("Are you sure you want to stop this instance?") {
 		o.printer.PrintWarning("Operation cancelled")
@@ -74,6 +81,11 @@ func (o swapInstanceOptions) Run(ctx context.Context) error {
 	}
 
 	o.printer.PrintSuccess("Request sent to swap")
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(updateResp.Record))
+	o.printer.PrintEmptyLine()
+	displayRecord, err = o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	if err != nil {
+		return err
+	}
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	return nil
 }

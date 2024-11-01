@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/metainstance/getter"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/types"
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ import (
 type metaInstanceListOptions struct {
 	client  mrdspb.MetaInstancesClient
 	printer *printer.Printer
+	getter  *getter.Getter
 }
 
 func newMetaInstanceListCmd() *cobra.Command {
@@ -31,6 +33,7 @@ func newMetaInstanceListCmd() *cobra.Command {
 
 			o.client = mrdspb.NewMetaInstancesClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 			return o.Run(cmd.Context())
 		},
 	}
@@ -48,7 +51,11 @@ func (o *metaInstanceListOptions) Run(ctx context.Context) error {
 	// Convert gRPC MetaInstance records to display format
 	displayMetaInstances := make([]types.DisplayMetaInstance, 0, len(resp.Records))
 	for _, record := range resp.Records {
-		displayMetaInstances = append(displayMetaInstances, convertGRPCMetaInstanceToDisplayMetaInstance(record))
+		displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, record)
+		if err != nil {
+			return err
+		}
+		displayMetaInstances = append(displayMetaInstances, displayRecord)
 	}
 
 	// Print list of meta instances

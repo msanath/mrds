@@ -11,14 +11,14 @@ import (
 )
 
 const (
-	ColumnId               = "id"
-	ColumnVersion          = "version"
-	ColumnIsDeleted        = "is_deleted"
-	ColumnName             = "name"
-	ColumnState            = "state"
-	ColumnMessage          = "message"
-	ColumnDeploymentPlanId = "deployment_plan_id"
-	ColumnDeploymentId     = "deployment_id"
+	ColumnId                 = "id"
+	ColumnVersion            = "version"
+	ColumnIsDeleted          = "is_deleted"
+	ColumnName               = "name"
+	ColumnState              = "state"
+	ColumnMessage            = "message"
+	ColumnDeploymentPlanName = "deployment_plan_name"
+	ColumnDeploymentId       = "deployment_id"
 )
 
 func GetDisplayMetaInstanceColumnTags() []string {
@@ -29,7 +29,7 @@ func GetDisplayMetaInstanceColumnTags() []string {
 		ColumnName,
 		ColumnState,
 		ColumnMessage,
-		ColumnDeploymentPlanId,
+		ColumnDeploymentPlanName,
 		ColumnDeploymentId,
 	}
 }
@@ -58,8 +58,8 @@ func (n *DisplayMetaInstance) GetDisplayFieldFromColumnTag(columnTag string) (pr
 		return n.Status.GetState(), nil
 	case ColumnMessage:
 		return n.Status.GetMessage(), nil
-	case ColumnDeploymentPlanId:
-		return n.GetDeploymentPlanID(), nil
+	case ColumnDeploymentPlanName:
+		return n.GetDeploymentPlanName(), nil
 	case ColumnDeploymentId:
 		return n.GetDeploymentID(), nil
 	}
@@ -164,12 +164,12 @@ func (n *DisplayMetaInstanceStatus) GetMessage() printer.DisplayField {
 	}
 }
 
-func (n *DisplayMetaInstance) GetDeploymentPlanID() printer.DisplayField {
+func (n *DisplayMetaInstance) GetDeploymentPlanName() printer.DisplayField {
 	return printer.DisplayField{
-		DisplayName: "Deployment Plan ID",
-		ColumnTag:   "deployment_plan_id",
+		DisplayName: "Deployment Plan Name",
+		ColumnTag:   "deployment_plan_name",
 		Value: func() string {
-			str := n.DeploymentPlanID
+			str := n.DeploymentPlanName
 			return str
 		},
 	}
@@ -197,12 +197,12 @@ func (n *DisplayRuntimeInstance) GetID() printer.DisplayField {
 	}
 }
 
-func (n *DisplayRuntimeInstance) GetNodeID() printer.DisplayField {
+func (n *DisplayRuntimeInstance) GetNodeName() printer.DisplayField {
 	return printer.DisplayField{
-		DisplayName: "Node ID",
+		DisplayName: "Node Name",
 		ColumnTag:   "",
 		Value: func() string {
-			str := n.NodeID
+			str := n.NodeName
 			return str
 		},
 	}

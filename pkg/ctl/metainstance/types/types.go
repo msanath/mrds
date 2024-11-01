@@ -4,13 +4,13 @@ package types
 //
 //go:generate /Users/sanath/projects/gondolf/bin/cligen DisplayMetaInstance types types_gen.go
 type DisplayMetaInstance struct {
-	Metadata         DisplayMetadata           `json:"metadata,omitempty"`
-	Name             string                    `json:"name,omitempty" displayName:"Meta Instance Name" columnTag:"name"`
-	Status           DisplayMetaInstanceStatus `json:"status,omitempty"`
-	DeploymentPlanID string                    `json:"deployment_plan_id,omitempty" displayName:"Deployment Plan ID" columnTag:"deployment_plan_id"`
-	DeploymentID     string                    `json:"deployment_id,omitempty" displayName:"Deployment ID" columnTag:"deployment_id"`
-	RuntimeInstances []DisplayRuntimeInstance  `json:"runtime_instances,omitempty"`
-	Operations       []DisplayOperation        `json:"operations,omitempty"`
+	Metadata           DisplayMetadata           `json:"metadata,omitempty"`
+	Name               string                    `json:"name,omitempty" displayName:"Meta Instance Name" columnTag:"name"`
+	Status             DisplayMetaInstanceStatus `json:"status,omitempty"`
+	DeploymentPlanName string                    `json:"deployment_plan_name,omitempty" displayName:"Deployment Plan Name" columnTag:"deployment_plan_name"`
+	DeploymentID       string                    `json:"deployment_id,omitempty" displayName:"Deployment ID" columnTag:"deployment_id"`
+	RuntimeInstances   []DisplayRuntimeInstance  `json:"runtime_instances,omitempty"`
+	Operations         []DisplayOperation        `json:"operations,omitempty"`
 }
 
 // DisplayMetadata is the display version of core.Metadata in MetaInstanceRecord.
@@ -29,7 +29,7 @@ type DisplayMetaInstanceStatus struct {
 // DisplayRuntimeInstance represents the display version of RuntimeInstance.
 type DisplayRuntimeInstance struct {
 	ID       string                       `json:"id,omitempty" displayName:"Instance ID"`
-	NodeID   string                       `json:"node_id,omitempty" displayName:"Node ID"`
+	NodeName string                       `json:"node_name,omitempty" displayName:"Node Name"`
 	IsActive bool                         `json:"is_active,omitempty" displayName:"Is Active" redTexts:"false" greenTexts:"true"`
 	Status   DisplayRuntimeInstanceStatus `json:"status,omitempty"`
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/metainstance/getter"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -19,6 +20,7 @@ type addRuntimeInstanceOptions struct {
 	metaInstancesClient mrdspb.MetaInstancesClient
 	nodesClient         mrdspb.NodesClient
 	printer             *printer.Printer
+	getter              *getter.Getter
 }
 
 func newAddRuntimeInstanceCmd() *cobra.Command {
@@ -36,6 +38,7 @@ func newAddRuntimeInstanceCmd() *cobra.Command {
 			o.metaInstancesClient = mrdspb.NewMetaInstancesClient(conn)
 			o.nodesClient = mrdspb.NewNodesClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 
 			return o.Run(cmd.Context())
 		},
@@ -68,7 +71,7 @@ func (o addRuntimeInstanceOptions) Run(ctx context.Context) error {
 	updateResp, err := o.metaInstancesClient.AddRuntimeInstance(ctx, &mrdspb.AddRuntimeInstanceRequest{
 		Metadata: metaInstanceResp.Record.Metadata,
 		RuntimeInstance: &mrdspb.RuntimeInstance{
-			Id:     fmt.Sprintf("%s-%s", metaInstanceResp.Record.Name, uuid.New().String()),
+			Id:     fmt.Sprintf("RuntimeInstance-%s", uuid.New().String()),
 			NodeId: nodeResp.Record.Metadata.Id,
 			Status: &mrdspb.RuntimeInstanceStatus{
 				State:   mrdspb.RuntimeInstanceState_RuntimeState_PENDING,
@@ -81,6 +84,10 @@ func (o addRuntimeInstanceOptions) Run(ctx context.Context) error {
 	}
 
 	o.printer.PrintSuccess("Runtime instance added successfully")
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(updateResp.Record))
+	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	if err != nil {
+		return err
+	}
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	return nil
 }

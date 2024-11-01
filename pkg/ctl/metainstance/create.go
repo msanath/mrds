@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/metainstance/getter"
 	"github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -19,6 +20,7 @@ type createInstanceOptions struct {
 	metaInstancesClient   mrdspb.MetaInstancesClient
 	deploymentPlansClient mrdspb.DeploymentPlansClient
 	printer               *printer.Printer
+	getter                *getter.Getter
 }
 
 func newCreateCmd() *cobra.Command {
@@ -36,6 +38,7 @@ func newCreateCmd() *cobra.Command {
 			o.metaInstancesClient = mrdspb.NewMetaInstancesClient(conn)
 			o.deploymentPlansClient = mrdspb.NewDeploymentPlansClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 
 			return o.Run(cmd.Context())
 		},
@@ -77,6 +80,10 @@ func (o createInstanceOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	o.printer.PrintDisplayMetaInstance(convertGRPCMetaInstanceToDisplayMetaInstance(createResp.Record))
+	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, createResp.Record)
+	if err != nil {
+		return err
+	}
+	o.printer.PrintDisplayMetaInstance(displayRecord)
 	return nil
 }
