@@ -7,9 +7,4 @@ package core
 type Metadata struct {
 	ID      string // ID is the unique identifier of the resource.
 	Version uint64 // Version is the version of the resource as it is known to the Ledger.
-
-	// IsDeleted indicates whether the resource has been marked as deleted.
-	// If true, the resource has been soft-deleted but may still exist in the system.
-	// No further operations can be performed on the resource.
-	IsDeleted bool
 }

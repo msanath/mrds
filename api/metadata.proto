@@ -13,7 +13,4 @@ message Metadata {
 
     // Version is the version of the resource as it is known to the Ledger.
     uint64 version = 2;
-
-    // IsDeleted indicates whether the resource has been soft-deleted.
-    bool is_deleted = 3;
 }

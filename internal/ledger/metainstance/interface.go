@@ -82,8 +82,8 @@ const (
 type Ledger interface {
 	// Create creates a new MetaInstance.
 	Create(context.Context, *CreateRequest) (*CreateResponse, error)
-	// GetByMetadata retrieves a MetaInstance by its metadata.
-	GetByMetadata(context.Context, *core.Metadata) (*GetResponse, error)
+	// GetByID retrieves a MetaInstance by its ID
+	GetByID(context.Context, string) (*GetResponse, error)
 	// GetByName retrieves a MetaInstance by its name.
 	GetByName(context.Context, string) (*GetResponse, error)
 	// UpdateStatus updates the state and message of an existing MetaInstance.

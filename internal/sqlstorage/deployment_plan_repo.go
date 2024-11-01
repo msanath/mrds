@@ -228,9 +228,9 @@ func (s *deploymentPlanStorage) Insert(ctx context.Context, record deploymentpla
 	return nil
 }
 
-func (s *deploymentPlanStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (deploymentplan.DeploymentPlanRecord, error) {
+func (s *deploymentPlanStorage) GetByID(ctx context.Context, id string) (deploymentplan.DeploymentPlanRecord, error) {
 	row, err := s.deploymentPlanTable.Get(ctx, tables.DeploymentPlanKeys{
-		ID: &metadata.ID,
+		ID: &id,
 	})
 	if err != nil {
 		return deploymentplan.DeploymentPlanRecord{}, errHandler(err)
@@ -318,7 +318,7 @@ func (s *deploymentPlanStorage) getByPartialRecord(ctx context.Context, deployme
 	return record, nil
 }
 
-func (s *deploymentPlanStorage) UpdateState(ctx context.Context, metadata core.Metadata, status deploymentplan.DeploymentPlanStatus) error {
+func (s *deploymentPlanStorage) UpdateStatus(ctx context.Context, metadata core.Metadata, status deploymentplan.DeploymentPlanStatus) error {
 	execer := s.DB
 	state := string(status.State)
 	message := status.Message

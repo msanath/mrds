@@ -18,7 +18,7 @@ type ComputeCapabilityActivities struct {
 func NewComputeCapabilityActivities(client mrdspb.ComputeCapabilitiesClient, registry worker.Registry) *ComputeCapabilityActivities {
 	a := &ComputeCapabilityActivities{client: client}
 	registry.RegisterActivity(a.CreateComputeCapability)
-	registry.RegisterActivity(a.GetComputeCapabilityByMetadata)
+	registry.RegisterActivity(a.GetComputeCapabilityByID)
 	registry.RegisterActivity(a.GetComputeCapabilityByName)
 	registry.RegisterActivity(a.UpdateComputeCapabilityStatus)
 	registry.RegisterActivity(a.ListComputeCapability)
@@ -45,14 +45,14 @@ func (c *ComputeCapabilityActivities) CreateComputeCapability(ctx context.Contex
 	return resp, nil
 }
 
-// GetComputeCapabilityByMetadata fetches ComputeCapability details based on metadata.
-func (c *ComputeCapabilityActivities) GetComputeCapabilityByMetadata(ctx context.Context, req *mrdspb.GetComputeCapabilityByMetadataRequest) (*mrdspb.GetComputeCapabilityResponse, error) {
-	activity.GetLogger(ctx).Info("Fetching ComputeCapability by metadata", "request", req)
+// GetComputeCapabilityByID fetches ComputeCapability details based on ID.
+func (c *ComputeCapabilityActivities) GetComputeCapabilityByID(ctx context.Context, req *mrdspb.GetComputeCapabilityByIDRequest) (*mrdspb.GetComputeCapabilityResponse, error) {
+	activity.GetLogger(ctx).Info("Fetching ComputeCapability by ID", "request", req)
 
-	resp, err := c.client.GetByMetadata(ctx, req)
+	resp, err := c.client.GetByID(ctx, req)
 	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to get ComputeCapability by metadata", "error", err)
-		return nil, fmt.Errorf("failed to get ComputeCapability by metadata: %w", err)
+		activity.GetLogger(ctx).Error("Failed to get ComputeCapability by ID", "error", err)
+		return nil, fmt.Errorf("failed to get ComputeCapability by ID: %w", err)
 	}
 
 	return resp, nil

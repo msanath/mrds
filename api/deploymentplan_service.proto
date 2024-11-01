@@ -12,8 +12,8 @@ service DeploymentPlans {
     // Create a new DeploymentPlan.
     rpc Create(CreateDeploymentPlanRequest) returns (CreateDeploymentPlanResponse);
 
-    // Get a DeploymentPlan by its metadata.
-    rpc GetByMetadata(GetDeploymentPlanByMetadataRequest) returns (GetDeploymentPlanResponse);
+    // Get a DeploymentPlan by its ID.
+    rpc GetByID(GetDeploymentPlanByIDRequest) returns (GetDeploymentPlanResponse);
 
     // Get a DeploymentPlan by its name.
     rpc GetByName(GetDeploymentPlanByNameRequest) returns (GetDeploymentPlanResponse);
@@ -50,9 +50,9 @@ message CreateDeploymentPlanResponse {
     DeploymentPlanRecord record = 1;
 }
 
-// GetDeploymentPlanByMetadataRequest represents the request to get a DeploymentPlan by metadata.
-message GetDeploymentPlanByMetadataRequest {
-    core.Metadata metadata = 1;
+// GetDeploymentPlanByIDRequest represents the request to get a DeploymentPlan by metadata.
+message GetDeploymentPlanByIDRequest {
+    string id = 1;
 }
 
 // GetDeploymentPlanByNameRequest represents the request to get a DeploymentPlan by name.

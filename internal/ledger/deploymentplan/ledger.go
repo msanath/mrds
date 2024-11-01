@@ -18,9 +18,9 @@ type ledger struct {
 // Repository provides the methods that the storage layer must implement to support the ledger.
 type Repository interface {
 	Insert(context.Context, DeploymentPlanRecord) error
-	GetByMetadata(context.Context, core.Metadata) (DeploymentPlanRecord, error)
+	GetByID(context.Context, string) (DeploymentPlanRecord, error)
 	GetByName(context.Context, string) (DeploymentPlanRecord, error)
-	UpdateState(context.Context, core.Metadata, DeploymentPlanStatus) error
+	UpdateStatus(context.Context, core.Metadata, DeploymentPlanStatus) error
 	Delete(context.Context, core.Metadata) error
 	List(context.Context, DeploymentPlanListFilters) ([]DeploymentPlanRecord, error)
 
@@ -95,17 +95,17 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 	}, nil
 }
 
-// GetByMetadata retrieves a DeploymentPlan by its metadata.
-func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*GetResponse, error) {
+// GetByID retrieves a DeploymentPlan by its ID.
+func (l *ledger) GetByID(ctx context.Context, id string) (*GetResponse, error) {
 	// validate the request
-	if metadata == nil || metadata.ID == "" {
+	if id == "" {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
-			"ID missing. ID is required to fetch by metadata",
+			"ID missing. ID is required to fetch by ID",
 		)
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, *metadata)
+	record, err := l.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		)
 	}
 
-	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -182,15 +182,12 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		)
 	}
 
-	err = l.repo.UpdateState(ctx, req.Metadata, req.Status)
+	err = l.repo.UpdateStatus(ctx, req.Metadata, req.Status)
 	if err != nil {
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +220,7 @@ func (l *ledger) AddDeployment(ctx context.Context, req *AddDeploymentRequest) (
 			"DeploymentID is required",
 		)
 	}
-	existingPlan, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingPlan, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -279,10 +276,7 @@ func (l *ledger) AddDeployment(ctx context.Context, req *AddDeploymentRequest) (
 	}
 
 	// Get the record again to return the updated record
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +293,7 @@ var validDeploymentStateTransitions = map[DeploymentState][]DeploymentState{
 }
 
 func (l *ledger) UpdateDeploymentStatus(ctx context.Context, req *UpdateDeploymentStatusRequest) (*UpdateResponse, error) {
-	existingPlan, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingPlan, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -346,10 +340,7 @@ func (l *ledger) UpdateDeploymentStatus(ctx context.Context, req *UpdateDeployme
 		return nil, err
 	}
 	// Get the record again to return the updated record
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}

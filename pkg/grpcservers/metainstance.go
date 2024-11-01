@@ -80,12 +80,9 @@ func (s *MetaInstanceService) Create(ctx context.Context, req *mrdspb.CreateMeta
 	return &mrdspb.CreateMetaInstanceResponse{Record: s.ledgerRecordToProto(createResponse.Record)}, nil
 }
 
-// GetByMetadata retrieves a MetaInstance by its metadata
-func (s *MetaInstanceService) GetByMetadata(ctx context.Context, req *mrdspb.GetMetaInstanceByMetadataRequest) (*mrdspb.GetMetaInstanceResponse, error) {
-	getResponse, err := s.ledger.GetByMetadata(ctx, &core.Metadata{
-		ID:      req.Metadata.Id,
-		Version: req.Metadata.Version,
-	})
+// GetByID retrieves a MetaInstance by its ID
+func (s *MetaInstanceService) GetByID(ctx context.Context, req *mrdspb.GetMetaInstanceByIDRequest) (*mrdspb.GetMetaInstanceResponse, error) {
+	getResponse, err := s.ledger.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

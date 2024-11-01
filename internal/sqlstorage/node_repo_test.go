@@ -75,7 +75,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Get By Metadata Success", func(t *testing.T) {
-		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
+		receivedRecord, err := repo.GetByID(ctx, testRecord.Metadata.ID)
 		require.NoError(t, err)
 		require.Equal(t, testRecord.Metadata, receivedRecord.Metadata)
 		require.Equal(t, testRecord.Name, receivedRecord.Name)

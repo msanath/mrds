@@ -12,8 +12,9 @@ service ComputeCapabilities {
     // Create a new ComputeCapability.
     rpc Create(CreateComputeCapabilityRequest) returns (CreateComputeCapabilityResponse);
 
-    // Get a ComputeCapability by its metadata.
-    rpc GetByMetadata(GetComputeCapabilityByMetadataRequest) returns (GetComputeCapabilityResponse);
+    // Get a ComputeCapability by its id.
+    rpc GetByID(GetComputeCapabilityByIDRequest) returns (GetComputeCapabilityResponse);
+
 
     // Get a ComputeCapability by its name.
     rpc GetByName(GetComputeCapabilityByNameRequest) returns (GetComputeCapabilityResponse);
@@ -56,8 +57,8 @@ message UpdateComputeCapabilityResponse {
     ComputeCapability record = 1;
 }
 
-message GetComputeCapabilityByMetadataRequest {
-    core.Metadata metadata = 1;
+message GetComputeCapabilityByIDRequest {
+    string id = 1;
 }
 
 // Request for getting a ComputeCapability by its name.

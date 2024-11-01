@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ComputeCapabilities_Create_FullMethodName        = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Create"
-	ComputeCapabilities_GetByMetadata_FullMethodName = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByMetadata"
-	ComputeCapabilities_GetByName_FullMethodName     = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByName"
-	ComputeCapabilities_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.computecapability.ComputeCapabilities/UpdateStatus"
-	ComputeCapabilities_List_FullMethodName          = "/proto.mrds.ledger.computecapability.ComputeCapabilities/List"
-	ComputeCapabilities_Delete_FullMethodName        = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Delete"
+	ComputeCapabilities_Create_FullMethodName       = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Create"
+	ComputeCapabilities_GetByID_FullMethodName      = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByID"
+	ComputeCapabilities_GetByName_FullMethodName    = "/proto.mrds.ledger.computecapability.ComputeCapabilities/GetByName"
+	ComputeCapabilities_UpdateStatus_FullMethodName = "/proto.mrds.ledger.computecapability.ComputeCapabilities/UpdateStatus"
+	ComputeCapabilities_List_FullMethodName         = "/proto.mrds.ledger.computecapability.ComputeCapabilities/List"
+	ComputeCapabilities_Delete_FullMethodName       = "/proto.mrds.ledger.computecapability.ComputeCapabilities/Delete"
 )
 
 // ComputeCapabilitiesClient is the client API for ComputeCapabilities service.
@@ -35,8 +35,8 @@ const (
 type ComputeCapabilitiesClient interface {
 	// Create a new ComputeCapability.
 	Create(ctx context.Context, in *CreateComputeCapabilityRequest, opts ...grpc.CallOption) (*CreateComputeCapabilityResponse, error)
-	// Get a ComputeCapability by its metadata.
-	GetByMetadata(ctx context.Context, in *GetComputeCapabilityByMetadataRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error)
+	// Get a ComputeCapability by its id.
+	GetByID(ctx context.Context, in *GetComputeCapabilityByIDRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error)
 	// Get a ComputeCapability by its name.
 	GetByName(ctx context.Context, in *GetComputeCapabilityByNameRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error)
 	// Update the state of an existing ComputeCapability.
@@ -65,10 +65,10 @@ func (c *computeCapabilitiesClient) Create(ctx context.Context, in *CreateComput
 	return out, nil
 }
 
-func (c *computeCapabilitiesClient) GetByMetadata(ctx context.Context, in *GetComputeCapabilityByMetadataRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error) {
+func (c *computeCapabilitiesClient) GetByID(ctx context.Context, in *GetComputeCapabilityByIDRequest, opts ...grpc.CallOption) (*GetComputeCapabilityResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetComputeCapabilityResponse)
-	err := c.cc.Invoke(ctx, ComputeCapabilities_GetByMetadata_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ComputeCapabilities_GetByID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func (c *computeCapabilitiesClient) Delete(ctx context.Context, in *DeleteComput
 type ComputeCapabilitiesServer interface {
 	// Create a new ComputeCapability.
 	Create(context.Context, *CreateComputeCapabilityRequest) (*CreateComputeCapabilityResponse, error)
-	// Get a ComputeCapability by its metadata.
-	GetByMetadata(context.Context, *GetComputeCapabilityByMetadataRequest) (*GetComputeCapabilityResponse, error)
+	// Get a ComputeCapability by its id.
+	GetByID(context.Context, *GetComputeCapabilityByIDRequest) (*GetComputeCapabilityResponse, error)
 	// Get a ComputeCapability by its name.
 	GetByName(context.Context, *GetComputeCapabilityByNameRequest) (*GetComputeCapabilityResponse, error)
 	// Update the state of an existing ComputeCapability.
@@ -146,8 +146,8 @@ type UnimplementedComputeCapabilitiesServer struct{}
 func (UnimplementedComputeCapabilitiesServer) Create(context.Context, *CreateComputeCapabilityRequest) (*CreateComputeCapabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedComputeCapabilitiesServer) GetByMetadata(context.Context, *GetComputeCapabilityByMetadataRequest) (*GetComputeCapabilityResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByMetadata not implemented")
+func (UnimplementedComputeCapabilitiesServer) GetByID(context.Context, *GetComputeCapabilityByIDRequest) (*GetComputeCapabilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedComputeCapabilitiesServer) GetByName(context.Context, *GetComputeCapabilityByNameRequest) (*GetComputeCapabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
@@ -200,20 +200,20 @@ func _ComputeCapabilities_Create_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ComputeCapabilities_GetByMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetComputeCapabilityByMetadataRequest)
+func _ComputeCapabilities_GetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetComputeCapabilityByIDRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ComputeCapabilitiesServer).GetByMetadata(ctx, in)
+		return srv.(ComputeCapabilitiesServer).GetByID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ComputeCapabilities_GetByMetadata_FullMethodName,
+		FullMethod: ComputeCapabilities_GetByID_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeCapabilitiesServer).GetByMetadata(ctx, req.(*GetComputeCapabilityByMetadataRequest))
+		return srv.(ComputeCapabilitiesServer).GetByID(ctx, req.(*GetComputeCapabilityByIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -302,8 +302,8 @@ var ComputeCapabilities_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ComputeCapabilities_Create_Handler,
 		},
 		{
-			MethodName: "GetByMetadata",
-			Handler:    _ComputeCapabilities_GetByMetadata_Handler,
+			MethodName: "GetByID",
+			Handler:    _ComputeCapabilities_GetByID_Handler,
 		},
 		{
 			MethodName: "GetByName",

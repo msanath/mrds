@@ -18,7 +18,7 @@ type DeploymentPlanActivities struct {
 func NewDeploymentPlanActivities(client mrdspb.DeploymentPlansClient, registry worker.Registry) *DeploymentPlanActivities {
 	a := &DeploymentPlanActivities{client: client}
 	registry.RegisterActivity(a.CreateDeploymentPlan)
-	registry.RegisterActivity(a.GetDeploymentPlanByMetadata)
+	registry.RegisterActivity(a.GetDeploymentPlanByID)
 	registry.RegisterActivity(a.GetDeploymentPlanByName)
 	registry.RegisterActivity(a.UpdateDeploymentPlanStatus)
 	registry.RegisterActivity(a.ListDeploymentPlan)
@@ -48,14 +48,14 @@ func (c *DeploymentPlanActivities) CreateDeploymentPlan(ctx context.Context, req
 	return resp, nil
 }
 
-// GetDeploymentPlanByMetadata fetches DeploymentPlan details based on metadata.
-func (c *DeploymentPlanActivities) GetDeploymentPlanByMetadata(ctx context.Context, req *mrdspb.GetDeploymentPlanByMetadataRequest) (*mrdspb.GetDeploymentPlanResponse, error) {
-	activity.GetLogger(ctx).Info("Fetching DeploymentPlan by metadata", "request", req)
+// GetDeploymentPlanByID fetches DeploymentPlan details based on ID.
+func (c *DeploymentPlanActivities) GetDeploymentPlanByID(ctx context.Context, req *mrdspb.GetDeploymentPlanByIDRequest) (*mrdspb.GetDeploymentPlanResponse, error) {
+	activity.GetLogger(ctx).Info("Fetching DeploymentPlan by ID", "request", req)
 
-	resp, err := c.client.GetByMetadata(ctx, req)
+	resp, err := c.client.GetByID(ctx, req)
 	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to get DeploymentPlan by metadata", "error", err)
-		return nil, fmt.Errorf("failed to get DeploymentPlan by metadata: %w", err)
+		activity.GetLogger(ctx).Error("Failed to get DeploymentPlan by ID", "error", err)
+		return nil, fmt.Errorf("failed to get DeploymentPlan by ID: %w", err)
 	}
 
 	return resp, nil

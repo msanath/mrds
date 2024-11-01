@@ -12,8 +12,8 @@ service MetaInstances {
     // Create a new MetaInstance.
     rpc Create(CreateMetaInstanceRequest) returns (CreateMetaInstanceResponse);
 
-    // Get a MetaInstance by its metadata.
-    rpc GetByMetadata(GetMetaInstanceByMetadataRequest) returns (GetMetaInstanceResponse);
+    // Get a MetaInstance by its ID.
+    rpc GetByID(GetMetaInstanceByIDRequest) returns (GetMetaInstanceResponse);
 
     // Get a MetaInstance by its name.
     rpc GetByName(GetMetaInstanceByNameRequest) returns (GetMetaInstanceResponse);
@@ -68,9 +68,9 @@ message UpdateMetaInstanceResponse {
     MetaInstance record = 1;
 }
 
-// Request to get a MetaInstance by its metadata.
-message GetMetaInstanceByMetadataRequest {
-    core.Metadata metadata = 1;
+// Get a MetaInstance by its ID.
+message GetMetaInstanceByIDRequest {
+    string id = 1;
 }
 
 // Request to get a MetaInstance by its name.

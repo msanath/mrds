@@ -12,8 +12,8 @@ service Clusters {
     // Create a new Cluster.
     rpc Create(CreateClusterRequest) returns (CreateClusterResponse);
 
-    // Get a Cluster by its metadata.
-    rpc GetByMetadata(GetClusterByMetadataRequest) returns (GetClusterResponse);
+    // Get a Cluster by its ID.
+    rpc GetByID(GetClusterByIDRequest) returns (GetClusterResponse);
 
     // Get a Cluster by its name.
     rpc GetByName(GetClusterByNameRequest) returns (GetClusterResponse);
@@ -54,8 +54,8 @@ message UpdateClusterResponse {
     Cluster record = 1;
 }
 
-message GetClusterByMetadataRequest {
-    core.Metadata metadata = 1;
+message GetClusterByIDRequest {
+    string id = 1;
 }
 
 // Request for getting a Cluster by its name.

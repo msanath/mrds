@@ -18,7 +18,7 @@ type MetaInstanceActivities struct {
 func NewMetaInstanceActivities(client mrdspb.MetaInstancesClient, registry worker.Registry) *MetaInstanceActivities {
 	a := &MetaInstanceActivities{client: client}
 	registry.RegisterActivity(a.CreateMetaInstance)
-	registry.RegisterActivity(a.GetMetaInstanceByMetadata)
+	registry.RegisterActivity(a.GetMetaInstanceByID)
 	registry.RegisterActivity(a.GetMetaInstanceByName)
 	registry.RegisterActivity(a.UpdateMetaInstanceStatus)
 	registry.RegisterActivity(a.ListMetaInstance)
@@ -52,14 +52,14 @@ func (c *MetaInstanceActivities) CreateMetaInstance(ctx context.Context, req *mr
 	return resp, nil
 }
 
-// GetMetaInstanceByMetadata fetches MetaInstance details based on metadata.
-func (c *MetaInstanceActivities) GetMetaInstanceByMetadata(ctx context.Context, req *mrdspb.GetMetaInstanceByMetadataRequest) (*mrdspb.GetMetaInstanceResponse, error) {
-	activity.GetLogger(ctx).Info("Fetching MetaInstance by metadata", "request", req)
+// GetMetaInstanceByID fetches MetaInstance details based on ID.
+func (c *MetaInstanceActivities) GetMetaInstanceByID(ctx context.Context, req *mrdspb.GetMetaInstanceByIDRequest) (*mrdspb.GetMetaInstanceResponse, error) {
+	activity.GetLogger(ctx).Info("Fetching MetaInstance by ID", "request", req)
 
-	resp, err := c.client.GetByMetadata(ctx, req)
+	resp, err := c.client.GetByID(ctx, req)
 	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to get MetaInstance by metadata", "error", err)
-		return nil, fmt.Errorf("failed to get MetaInstance by metadata: %w", err)
+		activity.GetLogger(ctx).Error("Failed to get MetaInstance by ID", "error", err)
+		return nil, fmt.Errorf("failed to get MetaInstance by ID: %w", err)
 	}
 
 	return resp, nil

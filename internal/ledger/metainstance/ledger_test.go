@@ -112,16 +112,16 @@ func TestOperationsLedger(t *testing.T) {
 		require.Nil(t, resp)
 	})
 
-	t.Run("GetByMetadata Success", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &lastUpdatedRecord.Metadata)
+	t.Run("GetByID Success", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), lastUpdatedRecord.Metadata.ID)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "test-metainstance", resp.Record.Name)
 	})
 
-	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: ""})
+	t.Run("GetByID InvalidID Failure", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), "")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -129,8 +129,8 @@ func TestOperationsLedger(t *testing.T) {
 		require.Nil(t, resp)
 	})
 
-	t.Run("GetByMetadata NotFound Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: "unknown"})
+	t.Run("GetByID NotFound Failure", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), "unknown")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -380,7 +380,7 @@ func TestOperationsLedger(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to get the MetaInstance again
-		_, err = l.GetByMetadata(context.Background(), &lastUpdatedRecord.Metadata)
+		_, err = l.GetByID(context.Background(), lastUpdatedRecord.Metadata.ID)
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)

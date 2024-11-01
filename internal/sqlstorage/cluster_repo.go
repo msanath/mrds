@@ -56,9 +56,9 @@ func (s *clusterStorage) Insert(ctx context.Context, record cluster.ClusterRecor
 	return nil
 }
 
-func (s *clusterStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (cluster.ClusterRecord, error) {
+func (s *clusterStorage) GetByID(ctx context.Context, id string) (cluster.ClusterRecord, error) {
 	row, err := s.clusterTable.Get(ctx, tables.ClusterTableKeys{
-		ID: &metadata.ID,
+		ID: &id,
 	})
 	if err != nil {
 		return cluster.ClusterRecord{}, errHandler(err)
@@ -76,7 +76,7 @@ func (s *clusterStorage) GetByName(ctx context.Context, name string) (cluster.Cl
 	return clusterRowToModel(row), nil
 }
 
-func (s *clusterStorage) UpdateState(ctx context.Context, metadata core.Metadata, status cluster.ClusterStatus) error {
+func (s *clusterStorage) UpdateStatus(ctx context.Context, metadata core.Metadata, status cluster.ClusterStatus) error {
 	execer := s.DB
 	state := status.State.ToString()
 	message := status.Message

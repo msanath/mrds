@@ -18,7 +18,7 @@ type ledger struct {
 // Repository provides the methods that the storage layer must implement to support the ledger.
 type Repository interface {
 	Insert(context.Context, NodeRecord) error
-	GetByMetadata(context.Context, core.Metadata) (NodeRecord, error)
+	GetByID(context.Context, string) (NodeRecord, error)
 	GetByName(context.Context, string) (NodeRecord, error)
 	UpdateStatus(context.Context, core.Metadata, NodeStatus, string) error
 	Delete(context.Context, core.Metadata) error
@@ -96,17 +96,17 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 	}, nil
 }
 
-// GetByMetadata retrieves a Node by its metadata.
-func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*GetResponse, error) {
+// GetByID retrieves a Node by its metadata.
+func (l *ledger) GetByID(ctx context.Context, id string) (*GetResponse, error) {
 	// validate the request
-	if metadata == nil || metadata.ID == "" {
+	if id == "" {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
-			"ID missing. ID is required to fetch by metadata",
+			"ID missing. ID is required to fetch by ID",
 		)
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, *metadata)
+	record, err := l.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		)
 	}
 
-	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -223,10 +223,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -279,10 +276,7 @@ func (l *ledger) AddDisruption(ctx context.Context, req *AddDisruptionRequest) (
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +307,7 @@ func (l *ledger) UpdateDisruptionStatus(ctx context.Context, req *UpdateDisrupti
 		)
 	}
 
-	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -360,10 +354,7 @@ func (l *ledger) UpdateDisruptionStatus(ctx context.Context, req *UpdateDisrupti
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +379,7 @@ func (l *ledger) RemoveDisruption(ctx context.Context, req *RemoveDisruptionRequ
 			"Disruption ID is required to remove a disruption",
 		)
 	}
-	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -421,10 +412,7 @@ func (l *ledger) RemoveDisruption(ctx context.Context, req *RemoveDisruptionRequ
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -455,10 +443,7 @@ func (l *ledger) AddCapability(ctx context.Context, req *AddCapabilityRequest) (
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -489,10 +474,7 @@ func (l *ledger) RemoveCapability(ctx context.Context, req *RemoveCapabilityRequ
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}

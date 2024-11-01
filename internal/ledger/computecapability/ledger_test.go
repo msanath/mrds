@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/msanath/mrds/internal/ledger/computecapability"
-	"github.com/msanath/mrds/internal/ledger/core"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
 
@@ -58,7 +57,7 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("GetByMetadata Success", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
+		resp, err := l.GetByID(context.Background(), createResp.Record.Metadata.ID)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -66,7 +65,7 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	})
 
 	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: ""})
+		resp, err := l.GetByID(context.Background(), "")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -75,7 +74,7 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	})
 
 	t.Run("GetByMetadata NotFound Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: "unknown"})
+		resp, err := l.GetByID(context.Background(), "unknown")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -217,7 +216,7 @@ func TestLedgerDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to get the ComputeCapability again
-	_, err = l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
+	_, err = l.GetByID(context.Background(), createResp.Record.Metadata.ID)
 	require.Error(t, err)
 	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 	require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)

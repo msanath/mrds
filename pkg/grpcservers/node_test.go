@@ -44,10 +44,8 @@ func TestNodeServer(t *testing.T) {
 	require.Equal(t, "test-Node", resp.Record.Name)
 	require.Len(t, resp.Record.LocalVolumes, 1)
 
-	// get by metadata
-	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetNodeByMetadataRequest{
-		Metadata: resp.Record.Metadata,
-	})
+	// get by id
+	getResp, err := client.GetByID(ctx, &mrdspb.GetNodeByIDRequest{Id: resp.Record.Metadata.Id})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, "test-Node", getResp.Record.Name)

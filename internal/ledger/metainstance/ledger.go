@@ -18,9 +18,9 @@ type ledger struct {
 // Repository provides the methods that the storage layer must implement to support the ledger.
 type Repository interface {
 	Insert(context.Context, MetaInstanceRecord) error
-	GetByMetadata(context.Context, core.Metadata) (MetaInstanceRecord, error)
+	GetByID(context.Context, string) (MetaInstanceRecord, error)
 	GetByName(context.Context, string) (MetaInstanceRecord, error)
-	UpdateState(context.Context, core.Metadata, MetaInstanceStatus) error
+	UpdateStatus(context.Context, core.Metadata, MetaInstanceStatus) error
 	UpdateDeploymentID(context.Context, core.Metadata, string) error
 	Delete(context.Context, core.Metadata) error
 	List(context.Context, MetaInstanceListFilters) ([]MetaInstanceRecord, error)
@@ -89,17 +89,17 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 	}, nil
 }
 
-// GetByMetadata retrieves a MetaInstance by its metadata.
-func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*GetResponse, error) {
+// GetByID retrieves a MetaInstance by its metadata.
+func (l *ledger) GetByID(ctx context.Context, id string) (*GetResponse, error) {
 	// validate the request
-	if metadata == nil || metadata.ID == "" {
+	if id == "" {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
-			"ID missing. ID is required to fetch by metadata",
+			"ID missing. ID is required to fetch by ID",
 		)
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, *metadata)
+	record, err := l.metaInstanceRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		)
 	}
 
-	existingRecord, err := l.metaInstanceRepo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -177,15 +177,12 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*U
 		)
 	}
 
-	err = l.metaInstanceRepo.UpdateState(ctx, req.Metadata, req.Status)
+	err = l.metaInstanceRepo.UpdateStatus(ctx, req.Metadata, req.Status)
 	if err != nil {
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,10 +205,7 @@ func (l *ledger) UpdateDeploymentID(ctx context.Context, req *UpdateDeploymentID
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -244,10 +238,7 @@ func (l *ledger) AddRuntimeInstance(ctx context.Context, req *AddRuntimeInstance
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -264,10 +255,7 @@ func (l *ledger) UpdateRuntimeStatus(ctx context.Context, req *UpdateRuntimeStat
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -284,10 +272,7 @@ func (l *ledger) RemoveRuntimeInstance(ctx context.Context, req *RemoveRuntimeIn
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -304,10 +289,7 @@ func (l *ledger) AddOperation(ctx context.Context, req *AddOperationRequest) (*U
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -324,10 +306,7 @@ func (l *ledger) UpdateOperationStatus(ctx context.Context, req *UpdateOperation
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -344,10 +323,7 @@ func (l *ledger) RemoveOperation(ctx context.Context, req *RemoveOperationReques
 		return nil, err
 	}
 
-	record, err := l.metaInstanceRepo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}

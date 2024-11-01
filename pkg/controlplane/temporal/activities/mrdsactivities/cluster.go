@@ -18,8 +18,8 @@ type ClusterActivities struct {
 func NewClusterActivities(client mrdspb.ClustersClient, registry worker.Registry) *ClusterActivities {
 	a := &ClusterActivities{client: client}
 	registry.RegisterActivity(a.CreateCluster)
-	registry.RegisterActivity(a.GetClusterByMetadata)
 	registry.RegisterActivity(a.GetClusterByName)
+	registry.RegisterActivity(a.GetClusterByID)
 	registry.RegisterActivity(a.UpdateClusterStatus)
 	registry.RegisterActivity(a.ListCluster)
 	registry.RegisterActivity(a.DeleteCluster)
@@ -45,19 +45,6 @@ func (c *ClusterActivities) CreateCluster(ctx context.Context, req *mrdspb.Creat
 	return resp, nil
 }
 
-// GetClusterByMetadata fetches Cluster details based on metadata.
-func (c *ClusterActivities) GetClusterByMetadata(ctx context.Context, req *mrdspb.GetClusterByMetadataRequest) (*mrdspb.GetClusterResponse, error) {
-	activity.GetLogger(ctx).Info("Fetching Cluster by metadata", "request", req)
-
-	resp, err := c.client.GetByMetadata(ctx, req)
-	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to get Cluster by metadata", "error", err)
-		return nil, fmt.Errorf("failed to get Cluster by metadata: %w", err)
-	}
-
-	return resp, nil
-}
-
 // GetClusterByName fetches Cluster details based on name.
 func (c *ClusterActivities) GetClusterByName(ctx context.Context, req *mrdspb.GetClusterByNameRequest) (*mrdspb.GetClusterResponse, error) {
 	activity.GetLogger(ctx).Info("Fetching Cluster by name", "request", req)
@@ -66,6 +53,19 @@ func (c *ClusterActivities) GetClusterByName(ctx context.Context, req *mrdspb.Ge
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to get Cluster by name", "error", err)
 		return nil, fmt.Errorf("failed to get Cluster by name: %w", err)
+	}
+
+	return resp, nil
+}
+
+// GetClusterByID fetches Cluster details based on ID.
+func (c *ClusterActivities) GetClusterByID(ctx context.Context, req *mrdspb.GetClusterByIDRequest) (*mrdspb.GetClusterResponse, error) {
+	activity.GetLogger(ctx).Info("Fetching Cluster by ID", "request", req)
+
+	resp, err := c.client.GetByID(ctx, req)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to get Cluster by ID", "error", err)
+		return nil, fmt.Errorf("failed to get Cluster by ID: %w", err)
 	}
 
 	return resp, nil

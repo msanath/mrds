@@ -100,10 +100,8 @@ func TestMetaInstanceServer(t *testing.T) {
 	require.NotNil(t, resp)
 	require.Equal(t, "test-metaInstance", resp.Record.Name)
 
-	// get by metadata
-	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetMetaInstanceByMetadataRequest{
-		Metadata: resp.Record.Metadata,
-	})
+	// get by id
+	getResp, err := client.GetByID(ctx, &mrdspb.GetMetaInstanceByIDRequest{Id: resp.Record.Metadata.Id})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, "test-metaInstance", getResp.Record.Name)

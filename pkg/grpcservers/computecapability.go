@@ -70,12 +70,9 @@ func (s *ComputeCapabilityService) Create(ctx context.Context, req *mrdspb.Creat
 	return &mrdspb.CreateComputeCapabilityResponse{Record: s.ledgerRecordToProto(createResponse.Record)}, nil
 }
 
-// GetByMetadata retrieves a ComputeCapability by its metadata
-func (s *ComputeCapabilityService) GetByMetadata(ctx context.Context, req *mrdspb.GetComputeCapabilityByMetadataRequest) (*mrdspb.GetComputeCapabilityResponse, error) {
-	getResponse, err := s.ledger.GetByMetadata(ctx, &core.Metadata{
-		ID:      req.Metadata.Id,
-		Version: req.Metadata.Version,
-	})
+// GetByName retrieves a ComputeCapability by its name
+func (s *ComputeCapabilityService) GetByID(ctx context.Context, req *mrdspb.GetComputeCapabilityByIDRequest) (*mrdspb.GetComputeCapabilityResponse, error) {
+	getResponse, err := s.ledger.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

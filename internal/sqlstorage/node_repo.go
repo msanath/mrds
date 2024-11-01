@@ -164,49 +164,15 @@ func (s *nodeStorage) Insert(ctx context.Context, record node.NodeRecord) error 
 	return nil
 }
 
-func (s *nodeStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (node.NodeRecord, error) {
+func (s *nodeStorage) GetByID(ctx context.Context, id string) (node.NodeRecord, error) {
 	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
-		ID: &metadata.ID,
+		ID: &id,
 	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
 	nodeRecord := nodeRowToRecord(nodeRow)
-
-	// Get the corresponding disruptionRows
-	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
-		NodeIDIn: []string{metadata.ID},
-	})
-	if err != nil {
-		return node.NodeRecord{}, errHandler(err)
-	}
-	for _, disruption := range disruptionRows {
-		nodeRecord.Disruptions = append(nodeRecord.Disruptions, nodeDisruptionRowToRecord(disruption))
-	}
-
-	// Get the corresponding volumeRows
-	volumeRows, err := s.nodeLocalVolumeTable.List(ctx, tables.NodeLocalVolumeTableSelectFilters{
-		NodeIDIn: []string{metadata.ID},
-	})
-	if err != nil {
-		return node.NodeRecord{}, errHandler(err)
-	}
-	for _, volume := range volumeRows {
-		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
-	}
-
-	// Get the corresponding capabilityRows
-	capabilityRows, err := s.nodeCapabilityTable.List(ctx, tables.NodeCapabilityTableSelectFilters{
-		NodeIDIn: []string{metadata.ID},
-	})
-	if err != nil {
-		return node.NodeRecord{}, errHandler(err)
-	}
-	for _, capability := range capabilityRows {
-		nodeRecord.CapabilityIDs = append(nodeRecord.CapabilityIDs, nodeCapabilityRowToRecord(capability))
-	}
-
-	return nodeRecord, nil
+	return s.getByPartialRecord(ctx, nodeRecord)
 }
 
 func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.NodeRecord, error) {
@@ -217,40 +183,44 @@ func (s *nodeStorage) GetByName(ctx context.Context, nodeName string) (node.Node
 		return node.NodeRecord{}, errHandler(err)
 	}
 	nodeRecord := nodeRowToRecord(nodeRow)
+	return s.getByPartialRecord(ctx, nodeRecord)
+}
 
+func (s *nodeStorage) getByPartialRecord(ctx context.Context, record node.NodeRecord) (node.NodeRecord, error) {
 	// Get the corresponding disruptionRows
 	disruptionRows, err := s.nodeDisruptionTable.List(ctx, tables.NodeDisruptionTableSelectFilters{
-		NodeIDIn: []string{nodeRecord.Metadata.ID},
+		NodeIDIn: []string{record.Metadata.ID},
 	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
 	for _, disruption := range disruptionRows {
-		nodeRecord.Disruptions = append(nodeRecord.Disruptions, nodeDisruptionRowToRecord(disruption))
+		record.Disruptions = append(record.Disruptions, nodeDisruptionRowToRecord(disruption))
 	}
 
 	// Get the corresponding volumeRows
 	volumeRows, err := s.nodeLocalVolumeTable.List(ctx, tables.NodeLocalVolumeTableSelectFilters{
-		NodeIDIn: []string{nodeRecord.Metadata.ID},
+		NodeIDIn: []string{record.Metadata.ID},
 	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
 	for _, volume := range volumeRows {
-		nodeRecord.LocalVolumes = append(nodeRecord.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
+		record.LocalVolumes = append(record.LocalVolumes, nodeLocalVolumeRowToRecord(volume))
 	}
 
 	// Get the corresponding capabilityRows
 	capabilityRows, err := s.nodeCapabilityTable.List(ctx, tables.NodeCapabilityTableSelectFilters{
-		NodeIDIn: []string{nodeRecord.Metadata.ID},
+		NodeIDIn: []string{record.Metadata.ID},
 	})
 	if err != nil {
 		return node.NodeRecord{}, errHandler(err)
 	}
 	for _, capability := range capabilityRows {
-		nodeRecord.CapabilityIDs = append(nodeRecord.CapabilityIDs, nodeCapabilityRowToRecord(capability))
+		record.CapabilityIDs = append(record.CapabilityIDs, nodeCapabilityRowToRecord(capability))
 	}
-	return nodeRecord, nil
+
+	return record, nil
 }
 
 func (s *nodeStorage) UpdateStatus(ctx context.Context, metadata core.Metadata, status node.NodeStatus, clusterID string) error {

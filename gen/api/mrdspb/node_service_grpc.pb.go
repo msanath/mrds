@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	Nodes_Create_FullMethodName                 = "/proto.mrds.ledger.node.Nodes/Create"
-	Nodes_GetByMetadata_FullMethodName          = "/proto.mrds.ledger.node.Nodes/GetByMetadata"
+	Nodes_GetByID_FullMethodName                = "/proto.mrds.ledger.node.Nodes/GetByID"
 	Nodes_GetByName_FullMethodName              = "/proto.mrds.ledger.node.Nodes/GetByName"
 	Nodes_UpdateStatus_FullMethodName           = "/proto.mrds.ledger.node.Nodes/UpdateStatus"
 	Nodes_List_FullMethodName                   = "/proto.mrds.ledger.node.Nodes/List"
@@ -40,8 +40,8 @@ const (
 type NodesClient interface {
 	// Create a new Node.
 	Create(ctx context.Context, in *CreateNodeRequest, opts ...grpc.CallOption) (*CreateNodeResponse, error)
-	// Get a Node by its metadata.
-	GetByMetadata(ctx context.Context, in *GetNodeByMetadataRequest, opts ...grpc.CallOption) (*GetNodeResponse, error)
+	// Get a Node by its ID.
+	GetByID(ctx context.Context, in *GetNodeByIDRequest, opts ...grpc.CallOption) (*GetNodeResponse, error)
 	// Get a Node by its name.
 	GetByName(ctx context.Context, in *GetNodeByNameRequest, opts ...grpc.CallOption) (*GetNodeResponse, error)
 	// Update the state of an existing Node.
@@ -75,10 +75,10 @@ func (c *nodesClient) Create(ctx context.Context, in *CreateNodeRequest, opts ..
 	return out, nil
 }
 
-func (c *nodesClient) GetByMetadata(ctx context.Context, in *GetNodeByMetadataRequest, opts ...grpc.CallOption) (*GetNodeResponse, error) {
+func (c *nodesClient) GetByID(ctx context.Context, in *GetNodeByIDRequest, opts ...grpc.CallOption) (*GetNodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetNodeResponse)
-	err := c.cc.Invoke(ctx, Nodes_GetByMetadata_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Nodes_GetByID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +183,8 @@ func (c *nodesClient) RemoveCapability(ctx context.Context, in *RemoveCapability
 type NodesServer interface {
 	// Create a new Node.
 	Create(context.Context, *CreateNodeRequest) (*CreateNodeResponse, error)
-	// Get a Node by its metadata.
-	GetByMetadata(context.Context, *GetNodeByMetadataRequest) (*GetNodeResponse, error)
+	// Get a Node by its ID.
+	GetByID(context.Context, *GetNodeByIDRequest) (*GetNodeResponse, error)
 	// Get a Node by its name.
 	GetByName(context.Context, *GetNodeByNameRequest) (*GetNodeResponse, error)
 	// Update the state of an existing Node.
@@ -211,8 +211,8 @@ type UnimplementedNodesServer struct{}
 func (UnimplementedNodesServer) Create(context.Context, *CreateNodeRequest) (*CreateNodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedNodesServer) GetByMetadata(context.Context, *GetNodeByMetadataRequest) (*GetNodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByMetadata not implemented")
+func (UnimplementedNodesServer) GetByID(context.Context, *GetNodeByIDRequest) (*GetNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedNodesServer) GetByName(context.Context, *GetNodeByNameRequest) (*GetNodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
@@ -280,20 +280,20 @@ func _Nodes_Create_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Nodes_GetByMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNodeByMetadataRequest)
+func _Nodes_GetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeByIDRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NodesServer).GetByMetadata(ctx, in)
+		return srv.(NodesServer).GetByID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Nodes_GetByMetadata_FullMethodName,
+		FullMethod: Nodes_GetByID_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodesServer).GetByMetadata(ctx, req.(*GetNodeByMetadataRequest))
+		return srv.(NodesServer).GetByID(ctx, req.(*GetNodeByIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -472,8 +472,8 @@ var Nodes_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Nodes_Create_Handler,
 		},
 		{
-			MethodName: "GetByMetadata",
-			Handler:    _Nodes_GetByMetadata_Handler,
+			MethodName: "GetByID",
+			Handler:    _Nodes_GetByID_Handler,
 		},
 		{
 			MethodName: "GetByName",

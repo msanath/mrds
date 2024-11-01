@@ -108,12 +108,9 @@ func (s *NodeService) Create(ctx context.Context, req *mrdspb.CreateNodeRequest)
 	return &mrdspb.CreateNodeResponse{Record: s.ledgerRecordToProto(createResponse.Record)}, nil
 }
 
-// GetByMetadata retrieves a Node by its metadata
-func (s *NodeService) GetByMetadata(ctx context.Context, req *mrdspb.GetNodeByMetadataRequest) (*mrdspb.GetNodeResponse, error) {
-	getResponse, err := s.ledger.GetByMetadata(ctx, &core.Metadata{
-		ID:      req.Metadata.Id,
-		Version: req.Metadata.Version,
-	})
+// GetByID retrieves a Node by its ID
+func (s *NodeService) GetByID(ctx context.Context, req *mrdspb.GetNodeByIDRequest) (*mrdspb.GetNodeResponse, error) {
+	getResponse, err := s.ledger.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

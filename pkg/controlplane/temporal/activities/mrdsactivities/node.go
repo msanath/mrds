@@ -18,7 +18,7 @@ type NodeActivities struct {
 func NewNodeActivities(client mrdspb.NodesClient, registry worker.Registry) *NodeActivities {
 	a := &NodeActivities{client: client}
 	registry.RegisterActivity(a.CreateNode)
-	registry.RegisterActivity(a.GetNodeByMetadata)
+	registry.RegisterActivity(a.GetNodeByID)
 	registry.RegisterActivity(a.GetNodeByName)
 	registry.RegisterActivity(a.UpdateNodeStatus)
 	registry.RegisterActivity(a.ListNode)
@@ -45,14 +45,14 @@ func (c *NodeActivities) CreateNode(ctx context.Context, req *mrdspb.CreateNodeR
 	return resp, nil
 }
 
-// GetNodeByMetadata fetches Node details based on metadata.
-func (c *NodeActivities) GetNodeByMetadata(ctx context.Context, req *mrdspb.GetNodeByMetadataRequest) (*mrdspb.GetNodeResponse, error) {
-	activity.GetLogger(ctx).Info("Fetching Node by metadata", "request", req)
+// GetNodeByID fetches Node details based on ID.
+func (c *NodeActivities) GetNodeByID(ctx context.Context, req *mrdspb.GetNodeByIDRequest) (*mrdspb.GetNodeResponse, error) {
+	activity.GetLogger(ctx).Info("Fetching Node by ID", "request", req)
 
-	resp, err := c.client.GetByMetadata(ctx, req)
+	resp, err := c.client.GetByID(ctx, req)
 	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to get Node by metadata", "error", err)
-		return nil, fmt.Errorf("failed to get Node by metadata: %w", err)
+		activity.GetLogger(ctx).Error("Failed to get Node by ID", "error", err)
+		return nil, fmt.Errorf("failed to get Node by ID: %w", err)
 	}
 
 	return resp, nil

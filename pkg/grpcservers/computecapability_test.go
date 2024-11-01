@@ -30,10 +30,8 @@ func TestComputeCapabilityServer(t *testing.T) {
 	require.Equal(t, "CPU", resp.Record.Type)
 	require.Equal(t, uint32(10), resp.Record.Score)
 
-	// get by metadata
-	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetComputeCapabilityByMetadataRequest{
-		Metadata: resp.Record.Metadata,
-	})
+	// get by id
+	getResp, err := client.GetByID(ctx, &mrdspb.GetComputeCapabilityByIDRequest{Id: resp.Record.Metadata.Id})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, "test-ComputeCapability", getResp.Record.Name)

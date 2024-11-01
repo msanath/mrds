@@ -18,7 +18,7 @@ type ledger struct {
 // Repository provides the methods that the storage layer must implement to support the ledger.
 type Repository interface {
 	Insert(context.Context, ComputeCapabilityRecord) error
-	GetByMetadata(context.Context, core.Metadata) (ComputeCapabilityRecord, error)
+	GetByID(context.Context, string) (ComputeCapabilityRecord, error)
 	GetByName(context.Context, string) (ComputeCapabilityRecord, error)
 	UpdateState(context.Context, core.Metadata, ComputeCapabilityStatus) error
 	Delete(context.Context, core.Metadata) error
@@ -65,16 +65,16 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 }
 
 // GetByMetadata retrieves a ComputeCapability by its metadata.
-func (l *ledger) GetByMetadata(ctx context.Context, metadata *core.Metadata) (*GetResponse, error) {
+func (l *ledger) GetByID(ctx context.Context, id string) (*GetResponse, error) {
 	// validate the request
-	if metadata == nil || metadata.ID == "" {
+	if id == "" {
 		return nil, ledgererrors.NewLedgerError(
 			ledgererrors.ErrRequestInvalid,
-			"ID missing. ID is required to fetch by metadata",
+			"ID missing. ID is required to fetch by ID",
 		)
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, *metadata)
+	record, err := l.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStateRequest) (*Up
 		)
 	}
 
-	existingRecord, err := l.repo.GetByMetadata(ctx, req.Metadata)
+	existingRecord, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		if ledgererrors.IsLedgerError(err) && ledgererrors.AsLedgerError(err).Code == ledgererrors.ErrRecordNotFound {
 			return nil, ledgererrors.NewLedgerError(
@@ -157,10 +157,7 @@ func (l *ledger) UpdateStatus(ctx context.Context, req *UpdateStateRequest) (*Up
 		return nil, err
 	}
 
-	record, err := l.repo.GetByMetadata(ctx, core.Metadata{
-		ID:      req.Metadata.ID,
-		Version: req.Metadata.Version + 1,
-	})
+	record, err := l.repo.GetByID(ctx, req.Metadata.ID)
 	if err != nil {
 		return nil, err
 	}

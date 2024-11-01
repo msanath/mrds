@@ -19,12 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Clusters_Create_FullMethodName        = "/proto.mrds.ledger.cluster.Clusters/Create"
-	Clusters_GetByMetadata_FullMethodName = "/proto.mrds.ledger.cluster.Clusters/GetByMetadata"
-	Clusters_GetByName_FullMethodName     = "/proto.mrds.ledger.cluster.Clusters/GetByName"
-	Clusters_UpdateStatus_FullMethodName  = "/proto.mrds.ledger.cluster.Clusters/UpdateStatus"
-	Clusters_List_FullMethodName          = "/proto.mrds.ledger.cluster.Clusters/List"
-	Clusters_Delete_FullMethodName        = "/proto.mrds.ledger.cluster.Clusters/Delete"
+	Clusters_Create_FullMethodName       = "/proto.mrds.ledger.cluster.Clusters/Create"
+	Clusters_GetByID_FullMethodName      = "/proto.mrds.ledger.cluster.Clusters/GetByID"
+	Clusters_GetByName_FullMethodName    = "/proto.mrds.ledger.cluster.Clusters/GetByName"
+	Clusters_UpdateStatus_FullMethodName = "/proto.mrds.ledger.cluster.Clusters/UpdateStatus"
+	Clusters_List_FullMethodName         = "/proto.mrds.ledger.cluster.Clusters/List"
+	Clusters_Delete_FullMethodName       = "/proto.mrds.ledger.cluster.Clusters/Delete"
 )
 
 // ClustersClient is the client API for Clusters service.
@@ -35,8 +35,8 @@ const (
 type ClustersClient interface {
 	// Create a new Cluster.
 	Create(ctx context.Context, in *CreateClusterRequest, opts ...grpc.CallOption) (*CreateClusterResponse, error)
-	// Get a Cluster by its metadata.
-	GetByMetadata(ctx context.Context, in *GetClusterByMetadataRequest, opts ...grpc.CallOption) (*GetClusterResponse, error)
+	// Get a Cluster by its ID.
+	GetByID(ctx context.Context, in *GetClusterByIDRequest, opts ...grpc.CallOption) (*GetClusterResponse, error)
 	// Get a Cluster by its name.
 	GetByName(ctx context.Context, in *GetClusterByNameRequest, opts ...grpc.CallOption) (*GetClusterResponse, error)
 	// Update the state of an existing Cluster.
@@ -65,10 +65,10 @@ func (c *clustersClient) Create(ctx context.Context, in *CreateClusterRequest, o
 	return out, nil
 }
 
-func (c *clustersClient) GetByMetadata(ctx context.Context, in *GetClusterByMetadataRequest, opts ...grpc.CallOption) (*GetClusterResponse, error) {
+func (c *clustersClient) GetByID(ctx context.Context, in *GetClusterByIDRequest, opts ...grpc.CallOption) (*GetClusterResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetClusterResponse)
-	err := c.cc.Invoke(ctx, Clusters_GetByMetadata_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Clusters_GetByID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func (c *clustersClient) Delete(ctx context.Context, in *DeleteClusterRequest, o
 type ClustersServer interface {
 	// Create a new Cluster.
 	Create(context.Context, *CreateClusterRequest) (*CreateClusterResponse, error)
-	// Get a Cluster by its metadata.
-	GetByMetadata(context.Context, *GetClusterByMetadataRequest) (*GetClusterResponse, error)
+	// Get a Cluster by its ID.
+	GetByID(context.Context, *GetClusterByIDRequest) (*GetClusterResponse, error)
 	// Get a Cluster by its name.
 	GetByName(context.Context, *GetClusterByNameRequest) (*GetClusterResponse, error)
 	// Update the state of an existing Cluster.
@@ -146,8 +146,8 @@ type UnimplementedClustersServer struct{}
 func (UnimplementedClustersServer) Create(context.Context, *CreateClusterRequest) (*CreateClusterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedClustersServer) GetByMetadata(context.Context, *GetClusterByMetadataRequest) (*GetClusterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByMetadata not implemented")
+func (UnimplementedClustersServer) GetByID(context.Context, *GetClusterByIDRequest) (*GetClusterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedClustersServer) GetByName(context.Context, *GetClusterByNameRequest) (*GetClusterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
@@ -200,20 +200,20 @@ func _Clusters_Create_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Clusters_GetByMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetClusterByMetadataRequest)
+func _Clusters_GetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetClusterByIDRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ClustersServer).GetByMetadata(ctx, in)
+		return srv.(ClustersServer).GetByID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Clusters_GetByMetadata_FullMethodName,
+		FullMethod: Clusters_GetByID_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClustersServer).GetByMetadata(ctx, req.(*GetClusterByMetadataRequest))
+		return srv.(ClustersServer).GetByID(ctx, req.(*GetClusterByIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -302,8 +302,8 @@ var Clusters_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Clusters_Create_Handler,
 		},
 		{
-			MethodName: "GetByMetadata",
-			Handler:    _Clusters_GetByMetadata_Handler,
+			MethodName: "GetByID",
+			Handler:    _Clusters_GetByID_Handler,
 		},
 		{
 			MethodName: "GetByName",

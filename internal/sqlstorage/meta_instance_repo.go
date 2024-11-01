@@ -110,9 +110,9 @@ func (s *metaInstanceStorage) Insert(ctx context.Context, record metainstance.Me
 	return nil
 }
 
-func (s *metaInstanceStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (metainstance.MetaInstanceRecord, error) {
+func (s *metaInstanceStorage) GetByID(ctx context.Context, id string) (metainstance.MetaInstanceRecord, error) {
 	row, err := s.metaInstanceTable.Get(ctx, tables.MetaInstanceKeys{
-		ID: &metadata.ID,
+		ID: &id,
 	})
 	if err != nil {
 		return metainstance.MetaInstanceRecord{}, errHandler(err)
@@ -156,7 +156,7 @@ func (s *metaInstanceStorage) getByPartialRecord(ctx context.Context, metaInstan
 	return record, nil
 }
 
-func (s *metaInstanceStorage) UpdateState(ctx context.Context, metadata core.Metadata, status metainstance.MetaInstanceStatus) error {
+func (s *metaInstanceStorage) UpdateStatus(ctx context.Context, metadata core.Metadata, status metainstance.MetaInstanceStatus) error {
 	execer := s.DB
 	state := string(status.State)
 	message := status.Message

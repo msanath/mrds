@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MetaInstances_Create_FullMethodName                = "/proto.mrds.ledger.metainstance.MetaInstances/Create"
-	MetaInstances_GetByMetadata_FullMethodName         = "/proto.mrds.ledger.metainstance.MetaInstances/GetByMetadata"
+	MetaInstances_GetByID_FullMethodName               = "/proto.mrds.ledger.metainstance.MetaInstances/GetByID"
 	MetaInstances_GetByName_FullMethodName             = "/proto.mrds.ledger.metainstance.MetaInstances/GetByName"
 	MetaInstances_UpdateStatus_FullMethodName          = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateStatus"
 	MetaInstances_UpdateDeploymentID_FullMethodName    = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateDeploymentID"
@@ -42,8 +42,8 @@ const (
 type MetaInstancesClient interface {
 	// Create a new MetaInstance.
 	Create(ctx context.Context, in *CreateMetaInstanceRequest, opts ...grpc.CallOption) (*CreateMetaInstanceResponse, error)
-	// Get a MetaInstance by its metadata.
-	GetByMetadata(ctx context.Context, in *GetMetaInstanceByMetadataRequest, opts ...grpc.CallOption) (*GetMetaInstanceResponse, error)
+	// Get a MetaInstance by its ID.
+	GetByID(ctx context.Context, in *GetMetaInstanceByIDRequest, opts ...grpc.CallOption) (*GetMetaInstanceResponse, error)
 	// Get a MetaInstance by its name.
 	GetByName(ctx context.Context, in *GetMetaInstanceByNameRequest, opts ...grpc.CallOption) (*GetMetaInstanceResponse, error)
 	// Update the status of an existing MetaInstance.
@@ -80,10 +80,10 @@ func (c *metaInstancesClient) Create(ctx context.Context, in *CreateMetaInstance
 	return out, nil
 }
 
-func (c *metaInstancesClient) GetByMetadata(ctx context.Context, in *GetMetaInstanceByMetadataRequest, opts ...grpc.CallOption) (*GetMetaInstanceResponse, error) {
+func (c *metaInstancesClient) GetByID(ctx context.Context, in *GetMetaInstanceByIDRequest, opts ...grpc.CallOption) (*GetMetaInstanceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMetaInstanceResponse)
-	err := c.cc.Invoke(ctx, MetaInstances_GetByMetadata_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, MetaInstances_GetByID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +208,8 @@ func (c *metaInstancesClient) RemoveOperation(ctx context.Context, in *RemoveOpe
 type MetaInstancesServer interface {
 	// Create a new MetaInstance.
 	Create(context.Context, *CreateMetaInstanceRequest) (*CreateMetaInstanceResponse, error)
-	// Get a MetaInstance by its metadata.
-	GetByMetadata(context.Context, *GetMetaInstanceByMetadataRequest) (*GetMetaInstanceResponse, error)
+	// Get a MetaInstance by its ID.
+	GetByID(context.Context, *GetMetaInstanceByIDRequest) (*GetMetaInstanceResponse, error)
 	// Get a MetaInstance by its name.
 	GetByName(context.Context, *GetMetaInstanceByNameRequest) (*GetMetaInstanceResponse, error)
 	// Update the status of an existing MetaInstance.
@@ -239,8 +239,8 @@ type UnimplementedMetaInstancesServer struct{}
 func (UnimplementedMetaInstancesServer) Create(context.Context, *CreateMetaInstanceRequest) (*CreateMetaInstanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedMetaInstancesServer) GetByMetadata(context.Context, *GetMetaInstanceByMetadataRequest) (*GetMetaInstanceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByMetadata not implemented")
+func (UnimplementedMetaInstancesServer) GetByID(context.Context, *GetMetaInstanceByIDRequest) (*GetMetaInstanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedMetaInstancesServer) GetByName(context.Context, *GetMetaInstanceByNameRequest) (*GetMetaInstanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
@@ -314,20 +314,20 @@ func _MetaInstances_Create_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MetaInstances_GetByMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetMetaInstanceByMetadataRequest)
+func _MetaInstances_GetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetaInstanceByIDRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MetaInstancesServer).GetByMetadata(ctx, in)
+		return srv.(MetaInstancesServer).GetByID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MetaInstances_GetByMetadata_FullMethodName,
+		FullMethod: MetaInstances_GetByID_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetaInstancesServer).GetByMetadata(ctx, req.(*GetMetaInstanceByMetadataRequest))
+		return srv.(MetaInstancesServer).GetByID(ctx, req.(*GetMetaInstanceByIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -542,8 +542,8 @@ var MetaInstances_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MetaInstances_Create_Handler,
 		},
 		{
-			MethodName: "GetByMetadata",
-			Handler:    _MetaInstances_GetByMetadata_Handler,
+			MethodName: "GetByID",
+			Handler:    _MetaInstances_GetByID_Handler,
 		},
 		{
 			MethodName: "GetByName",

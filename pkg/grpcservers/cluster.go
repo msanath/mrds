@@ -65,11 +65,8 @@ func (s *ClusterService) Create(ctx context.Context, req *mrdspb.CreateClusterRe
 }
 
 // GetByMetadata retrieves a Cluster by its metadata
-func (s *ClusterService) GetByMetadata(ctx context.Context, req *mrdspb.GetClusterByMetadataRequest) (*mrdspb.GetClusterResponse, error) {
-	getResponse, err := s.ledger.GetByMetadata(ctx, &core.Metadata{
-		ID:      req.Metadata.Id,
-		Version: req.Metadata.Version,
-	})
+func (s *ClusterService) GetByID(ctx context.Context, req *mrdspb.GetClusterByIDRequest) (*mrdspb.GetClusterResponse, error) {
+	getResponse, err := s.ledger.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	DeploymentPlans_Create_FullMethodName                 = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/Create"
-	DeploymentPlans_GetByMetadata_FullMethodName          = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByMetadata"
+	DeploymentPlans_GetByID_FullMethodName                = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByID"
 	DeploymentPlans_GetByName_FullMethodName              = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/GetByName"
 	DeploymentPlans_UpdateStatus_FullMethodName           = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/UpdateStatus"
 	DeploymentPlans_List_FullMethodName                   = "/proto.mrds.ledger.deploymentplan.DeploymentPlans/List"
@@ -35,8 +35,8 @@ const (
 type DeploymentPlansClient interface {
 	// Create a new DeploymentPlan.
 	Create(ctx context.Context, in *CreateDeploymentPlanRequest, opts ...grpc.CallOption) (*CreateDeploymentPlanResponse, error)
-	// Get a DeploymentPlan by its metadata.
-	GetByMetadata(ctx context.Context, in *GetDeploymentPlanByMetadataRequest, opts ...grpc.CallOption) (*GetDeploymentPlanResponse, error)
+	// Get a DeploymentPlan by its ID.
+	GetByID(ctx context.Context, in *GetDeploymentPlanByIDRequest, opts ...grpc.CallOption) (*GetDeploymentPlanResponse, error)
 	// Get a DeploymentPlan by its name.
 	GetByName(ctx context.Context, in *GetDeploymentPlanByNameRequest, opts ...grpc.CallOption) (*GetDeploymentPlanResponse, error)
 	// Update the state of an existing DeploymentPlan.
@@ -69,10 +69,10 @@ func (c *deploymentPlansClient) Create(ctx context.Context, in *CreateDeployment
 	return out, nil
 }
 
-func (c *deploymentPlansClient) GetByMetadata(ctx context.Context, in *GetDeploymentPlanByMetadataRequest, opts ...grpc.CallOption) (*GetDeploymentPlanResponse, error) {
+func (c *deploymentPlansClient) GetByID(ctx context.Context, in *GetDeploymentPlanByIDRequest, opts ...grpc.CallOption) (*GetDeploymentPlanResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDeploymentPlanResponse)
-	err := c.cc.Invoke(ctx, DeploymentPlans_GetByMetadata_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, DeploymentPlans_GetByID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +145,8 @@ func (c *deploymentPlansClient) UpdateDeploymentStatus(ctx context.Context, in *
 type DeploymentPlansServer interface {
 	// Create a new DeploymentPlan.
 	Create(context.Context, *CreateDeploymentPlanRequest) (*CreateDeploymentPlanResponse, error)
-	// Get a DeploymentPlan by its metadata.
-	GetByMetadata(context.Context, *GetDeploymentPlanByMetadataRequest) (*GetDeploymentPlanResponse, error)
+	// Get a DeploymentPlan by its ID.
+	GetByID(context.Context, *GetDeploymentPlanByIDRequest) (*GetDeploymentPlanResponse, error)
 	// Get a DeploymentPlan by its name.
 	GetByName(context.Context, *GetDeploymentPlanByNameRequest) (*GetDeploymentPlanResponse, error)
 	// Update the state of an existing DeploymentPlan.
@@ -172,8 +172,8 @@ type UnimplementedDeploymentPlansServer struct{}
 func (UnimplementedDeploymentPlansServer) Create(context.Context, *CreateDeploymentPlanRequest) (*CreateDeploymentPlanResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedDeploymentPlansServer) GetByMetadata(context.Context, *GetDeploymentPlanByMetadataRequest) (*GetDeploymentPlanResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetByMetadata not implemented")
+func (UnimplementedDeploymentPlansServer) GetByID(context.Context, *GetDeploymentPlanByIDRequest) (*GetDeploymentPlanResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByID not implemented")
 }
 func (UnimplementedDeploymentPlansServer) GetByName(context.Context, *GetDeploymentPlanByNameRequest) (*GetDeploymentPlanResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByName not implemented")
@@ -232,20 +232,20 @@ func _DeploymentPlans_Create_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DeploymentPlans_GetByMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDeploymentPlanByMetadataRequest)
+func _DeploymentPlans_GetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDeploymentPlanByIDRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DeploymentPlansServer).GetByMetadata(ctx, in)
+		return srv.(DeploymentPlansServer).GetByID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DeploymentPlans_GetByMetadata_FullMethodName,
+		FullMethod: DeploymentPlans_GetByID_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeploymentPlansServer).GetByMetadata(ctx, req.(*GetDeploymentPlanByMetadataRequest))
+		return srv.(DeploymentPlansServer).GetByID(ctx, req.(*GetDeploymentPlanByIDRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -370,8 +370,8 @@ var DeploymentPlans_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DeploymentPlans_Create_Handler,
 		},
 		{
-			MethodName: "GetByMetadata",
-			Handler:    _DeploymentPlans_GetByMetadata_Handler,
+			MethodName: "GetByID",
+			Handler:    _DeploymentPlans_GetByID_Handler,
 		},
 		{
 			MethodName: "GetByName",

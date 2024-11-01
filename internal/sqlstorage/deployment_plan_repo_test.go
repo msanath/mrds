@@ -104,7 +104,7 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 	})
 
 	t.Run("Get By Metadata Success", func(t *testing.T) {
-		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
+		receivedRecord, err := repo.GetByID(ctx, testRecord.Metadata.ID)
 		require.NoError(t, err)
 		require.Equal(t, testRecord.Name, receivedRecord.Name)
 		require.Equal(t, testRecord.Status, receivedRecord.Status)
@@ -131,7 +131,7 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 			Message: "Needs attention",
 		}
 
-		err = repo.UpdateState(ctx, testRecord.Metadata, status)
+		err = repo.UpdateStatus(ctx, testRecord.Metadata, status)
 		require.NoError(t, err)
 
 		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
@@ -303,7 +303,7 @@ func testDeploymentPlanCRUD(t *testing.T, repo deploymentplan.Repository, testRe
 				Message: "Needs attention",
 			}
 
-			err = repo.UpdateState(ctx, allRecords[1].Metadata, status)
+			err = repo.UpdateStatus(ctx, allRecords[1].Metadata, status)
 			require.NoError(t, err)
 			ve := uint64(1)
 			records, err := repo.List(ctx, deploymentplan.DeploymentPlanListFilters{

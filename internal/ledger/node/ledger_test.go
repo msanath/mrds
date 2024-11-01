@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/msanath/mrds/internal/ledger/core"
 	ledgererrors "github.com/msanath/mrds/internal/ledger/errors"
 	"github.com/msanath/mrds/internal/ledger/node"
 	"github.com/msanath/mrds/internal/sqlstorage/test"
@@ -117,7 +116,7 @@ func TestLedgerCreate(t *testing.T) {
 	})
 }
 
-func TestLedgerGetByMetadata(t *testing.T) {
+func TestLedgerGetByID(t *testing.T) {
 	storage := test.TestSQLStorage(t)
 	l := node.NewLedger(storage.Node)
 
@@ -137,8 +136,8 @@ func TestLedgerGetByMetadata(t *testing.T) {
 	createResp, err := l.Create(context.Background(), req)
 	require.NoError(t, err)
 
-	t.Run("GetByMetadata Success", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
+	t.Run("GetByID Success", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), createResp.Record.Metadata.ID)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -151,8 +150,8 @@ func TestLedgerGetByMetadata(t *testing.T) {
 		require.ElementsMatch(t, []string{"test-capability", "test-capability-1"}, resp.Record.CapabilityIDs)
 	})
 
-	t.Run("GetByMetadata InvalidID Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: ""})
+	t.Run("GetByID InvalidID Failure", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), "")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -160,8 +159,8 @@ func TestLedgerGetByMetadata(t *testing.T) {
 		require.Nil(t, resp)
 	})
 
-	t.Run("GetByMetadata NotFound Failure", func(t *testing.T) {
-		resp, err := l.GetByMetadata(context.Background(), &core.Metadata{ID: "unknown"})
+	t.Run("GetByID NotFound Failure", func(t *testing.T) {
+		resp, err := l.GetByID(context.Background(), "unknown")
 
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
@@ -366,7 +365,7 @@ func TestLedgerDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to get the Node again
-	_, err = l.GetByMetadata(context.Background(), &createResp.Record.Metadata)
+	_, err = l.GetByID(context.Background(), createResp.Record.Metadata.ID)
 	require.Error(t, err)
 	require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 	require.Equal(t, ledgererrors.ErrRecordNotFound, err.(ledgererrors.LedgerError).Code)

@@ -55,7 +55,7 @@ type Ledger interface {
 	// Create creates a new ComputeCapability.
 	Create(context.Context, *CreateRequest) (*CreateResponse, error)
 	// GetByMetadata retrieves a ComputeCapability by its metadata.
-	GetByMetadata(context.Context, *core.Metadata) (*GetResponse, error)
+	GetByID(context.Context, string) (*GetResponse, error)
 	// GetByName retrieves a ComputeCapability by its name.
 	GetByName(context.Context, string) (*GetResponse, error)
 	// UpdateStatus updates the state and message of an existing ComputeCapability.

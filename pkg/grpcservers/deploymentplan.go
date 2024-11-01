@@ -187,12 +187,9 @@ func (s *DeploymentPlanService) Create(ctx context.Context, req *mrdspb.CreateDe
 	return &mrdspb.CreateDeploymentPlanResponse{Record: s.ledgerRecordToProto(createResponse.Record)}, nil
 }
 
-// GetByMetadata retrieves a DeploymentPlan by its metadata
-func (s *DeploymentPlanService) GetByMetadata(ctx context.Context, req *mrdspb.GetDeploymentPlanByMetadataRequest) (*mrdspb.GetDeploymentPlanResponse, error) {
-	getResponse, err := s.ledger.GetByMetadata(ctx, &core.Metadata{
-		ID:      req.Metadata.Id,
-		Version: req.Metadata.Version,
-	})
+// GetByID retrieves a DeploymentPlan by its ID
+func (s *DeploymentPlanService) GetByID(ctx context.Context, req *mrdspb.GetDeploymentPlanByIDRequest) (*mrdspb.GetDeploymentPlanResponse, error) {
+	getResponse, err := s.ledger.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

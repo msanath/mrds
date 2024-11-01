@@ -69,7 +69,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 	})
 
 	t.Run("Get By Metadata Success", func(t *testing.T) {
-		receivedRecord, err := repo.GetByMetadata(ctx, testRecord.Metadata)
+		receivedRecord, err := repo.GetByID(ctx, testRecord.Metadata.ID)
 		require.NoError(t, err)
 		require.Equal(t, testRecord.Name, receivedRecord.Name)
 		require.Equal(t, testRecord.Status, receivedRecord.Status)
@@ -96,7 +96,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			Message: "Needs attention",
 		}
 
-		err = repo.UpdateState(ctx, testRecord.Metadata, status)
+		err = repo.UpdateStatus(ctx, testRecord.Metadata, status)
 		require.NoError(t, err)
 
 		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
@@ -367,7 +367,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			}
 			rec, err := repo.GetByName(ctx, fmt.Sprintf("%s-2", metaInstanceidPrefix))
 			require.NoError(t, err)
-			err = repo.UpdateState(ctx, rec.Metadata, status)
+			err = repo.UpdateStatus(ctx, rec.Metadata, status)
 			require.NoError(t, err)
 			ve := uint64(1)
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{

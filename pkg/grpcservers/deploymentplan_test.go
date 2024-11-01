@@ -55,10 +55,8 @@ func TestDeploymentPlanServer(t *testing.T) {
 	require.Equal(t, "test-service", resp.Record.ServiceName)
 	require.Len(t, resp.Record.Applications, 1)
 
-	// get by metadata
-	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetDeploymentPlanByMetadataRequest{
-		Metadata: resp.Record.Metadata,
-	})
+	// get by id
+	getResp, err := client.GetByID(ctx, &mrdspb.GetDeploymentPlanByIDRequest{Id: resp.Record.Metadata.Id})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, "test-deployment-plan", getResp.Record.Name)

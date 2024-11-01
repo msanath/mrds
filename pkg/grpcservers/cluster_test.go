@@ -24,10 +24,8 @@ func TestClusterServer(t *testing.T) {
 	require.NotNil(t, resp)
 	require.Equal(t, "test-Cluster", resp.Record.Name)
 
-	// get by metadata
-	getResp, err := client.GetByMetadata(ctx, &mrdspb.GetClusterByMetadataRequest{
-		Metadata: resp.Record.Metadata,
-	})
+	// get by id
+	getResp, err := client.GetByID(ctx, &mrdspb.GetClusterByIDRequest{Id: resp.Record.Metadata.Id})
 	require.NoError(t, err)
 	require.NotNil(t, getResp)
 	require.Equal(t, "test-Cluster", getResp.Record.Name)

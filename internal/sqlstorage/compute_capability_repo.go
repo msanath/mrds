@@ -61,9 +61,9 @@ func (s *computeCapabilityStorage) Insert(ctx context.Context, record computecap
 	return nil
 }
 
-func (s *computeCapabilityStorage) GetByMetadata(ctx context.Context, metadata core.Metadata) (computecapability.ComputeCapabilityRecord, error) {
+func (s *computeCapabilityStorage) GetByID(ctx context.Context, id string) (computecapability.ComputeCapabilityRecord, error) {
 	row, err := s.computeCapabilityTable.Get(ctx, tables.ComputeCapabilityKeys{
-		ID: &metadata.ID,
+		ID: &id,
 	})
 	if err != nil {
 		return computecapability.ComputeCapabilityRecord{}, errHandler(err)
