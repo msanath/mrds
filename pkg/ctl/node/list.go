@@ -12,6 +12,10 @@ import (
 )
 
 type nodeListOptions struct {
+	payloadNamesNotIn  []string
+	remainingCoresGTE  int
+	remainingMemoryGTE int
+
 	nodesClient mrdspb.NodesClient
 	printer     *printer.Printer
 }
@@ -34,11 +38,19 @@ func newNodeListCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringSliceVar(&o.payloadNamesNotIn, "payload-names-not-in", nil, "Filter nodes by payload names not in")
+	cmd.Flags().IntVar(&o.remainingCoresGTE, "remaining-cores-gte", 0, "Filter nodes by remaining cores greater than or equal to")
+	cmd.Flags().IntVar(&o.remainingMemoryGTE, "remaining-memory-gte", 0, "Filter nodes by remaining memory greater than or equal to")
+
 	return cmd
 }
 
 func (o *nodeListOptions) Run(ctx context.Context) error {
-	resp, err := o.nodesClient.List(context.Background(), &mrdspb.ListNodeRequest{})
+	resp, err := o.nodesClient.List(context.Background(), &mrdspb.ListNodeRequest{
+		PayloadNameNotIn:   o.payloadNamesNotIn,
+		RemainingCoresGte:  uint32(o.remainingCoresGTE),
+		RemainingMemoryGte: uint32(o.remainingMemoryGTE),
+	})
 	if err != nil {
 		return err
 	}

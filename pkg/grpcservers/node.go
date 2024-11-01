@@ -202,6 +202,8 @@ func (s *NodeService) List(ctx context.Context, req *mrdspb.ListNodeRequest) (*m
 			RemainingMemoryLte: remainingMemoryLte,
 			ClusterIDIn:        req.ClusterIdIn,
 			UpdateDomainIn:     req.UpdateDomainIn,
+			PayloadNameIn:      req.PayloadNameIn,
+			PayloadNameNotIn:   req.PayloadNameNotIn,
 		},
 	})
 	if err != nil {

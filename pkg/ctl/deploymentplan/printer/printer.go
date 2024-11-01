@@ -1,6 +1,7 @@
 package printer
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -57,33 +58,29 @@ func (p *Printer) PrintDisplayDeploymentPlan(plan types.DisplayDeploymentPlan) {
 		p.PrintWarning("No applications found")
 	} else {
 		for _, app := range plan.Applications {
-			p.PrintKeyValueWithIndent("Payload Name", app.PayloadName)
-			p.PrintKeyValueWithIndent("Cores", strconv.Itoa(app.Resources.Cores))
-			p.PrintKeyValueWithIndent("Memory (MB)", strconv.Itoa(app.Resources.Memory))
-			p.PrintHeader("Ports")
-			if len(app.Ports) == 0 {
-				p.PrintWarning("No ports found")
-			} else {
-				tableHeaders := []string{"Protocol", "Port"}
-				rows := make([][]string, 0)
-				for _, port := range app.Ports {
-					rows = append(rows, []string{port.Protocol, strconv.Itoa(port.Port)})
-				}
-				p.PrintTable(tableHeaders, rows)
+
+			ports := []string{}
+			for _, port := range app.Ports {
+				ports = append(ports, port.Protocol+":"+strconv.Itoa(port.Port))
 			}
 
-			p.PrintHeader("Persistent Volumes")
-			if len(app.PersistentVolumes) == 0 {
-				p.PrintWarning("No persistent volumes found")
-			} else {
-				tableHeaders := []string{"Storage Class", "Capacity (GB)", "Mount Path"}
-				rows := make([][]string, 0)
-				for _, volume := range app.PersistentVolumes {
-					rows = append(rows, []string{volume.StorageClass, strconv.Itoa(volume.Capacity), volume.MountPath})
-				}
-				p.PrintTable(tableHeaders, rows)
+			persistentVolumes := []string{}
+			for _, volume := range app.PersistentVolumes {
+				persistentVolumes = append(persistentVolumes, fmt.Sprintf("Storage Class: %s, Capacity: %d GB, Mount Path: %s", volume.StorageClass, volume.Capacity, volume.MountPath))
 			}
-			p.PrintLineSeparator()
+
+			tableHeaders := []string{"Payload Name", "Cores", "Memory (GiB)", "Ports", "Persistent Volumes"}
+			rows := make([][]string, 0)
+			rows = append(rows,
+				[]string{
+					app.GetPayloadName().Value(),
+					app.Resources.GetCores().Value(),
+					app.Resources.GetMemory().Value(),
+					strings.Join(ports, "\n"),
+					strings.Join(persistentVolumes, "\n"),
+				},
+			)
+			p.PrintTable(tableHeaders, rows, printer.WithRowSeparator())
 		}
 	}
 	p.PrintEmptyLine()

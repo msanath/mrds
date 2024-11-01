@@ -126,6 +126,9 @@ message ListNodeRequest {
     uint32 remaining_cores_lte = 13;
     uint32 remaining_memory_gte = 14;
     uint32 remaining_memory_lte = 15;
+
+    repeated string payload_name_in = 16;
+    repeated string payload_name_not_in = 17;
 }
 
 // Response for listing Nodes.

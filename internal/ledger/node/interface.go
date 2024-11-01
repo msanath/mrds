@@ -152,6 +152,8 @@ type NodeListFilters struct {
 	RemainingMemoryLte *uint32
 	ClusterIDIn        []string
 	UpdateDomainIn     []string
+	PayloadNameIn      []string
+	PayloadNameNotIn   []string
 }
 
 // ListResponse represents the response to a list request.

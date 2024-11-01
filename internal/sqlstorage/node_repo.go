@@ -263,12 +263,16 @@ func (s *nodeStorage) List(ctx context.Context, filters node.NodeListFilters) ([
 		RemainingMemoryGte: filters.RemainingMemoryGte,
 		RemainingMemoryLte: filters.RemainingMemoryLte,
 		ClusterIDIn:        append([]string{}, filters.ClusterIDIn...),
+		PayloadNameIn:      append([]string{}, filters.PayloadNameIn...),
+		PayloadNameNotIn:   append([]string{}, filters.PayloadNameNotIn...),
+		UpdateDomainIn:     append([]string{}, filters.UpdateDomainIn...),
 	}
 
 	// Extract node specific filters
 	for _, state := range filters.StateIn {
 		dbFilters.StateIn = append(dbFilters.StateIn, string(state))
 	}
+
 	for _, state := range filters.StateNotIn {
 		dbFilters.StateNotIn = append(dbFilters.StateNotIn, string(state))
 	}

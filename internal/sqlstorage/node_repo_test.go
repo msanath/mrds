@@ -313,6 +313,7 @@ func TestNodeRecordLifecycle(t *testing.T) {
 
 			err = repo.UpdateStatus(ctx, allRecords[1].Metadata, status, "")
 			require.NoError(t, err)
+
 			ve := uint64(1)
 			records, err := repo.List(ctx, node.NodeListFilters{
 				VersionEq: &ve,

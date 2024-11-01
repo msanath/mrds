@@ -19,6 +19,7 @@ type metaInstanceStorage struct {
 	metaInstanceRuntimeInstanceTable *tables.MetaInstanceRuntimeInstanceTable
 	deploymentPlanApplicationTable   *tables.DeploymentPlanApplicationTable
 	nodeTable                        *tables.NodeTable
+	nodePayloadTable                 *tables.NodePayloadTable
 }
 
 // newMetaInstanceStorage creates a new storage instance satisfying the MetaInstanceRepository interface
@@ -30,6 +31,7 @@ func newMetaInstanceStorage(db simplesql.Database) metainstance.Repository {
 		metaInstanceRuntimeInstanceTable: tables.NewMetaInstanceRuntimeInstanceTable(db),
 		deploymentPlanApplicationTable:   tables.NewDeploymentPlanApplicationTable(db),
 		nodeTable:                        tables.NewNodeTable(db),
+		nodePayloadTable:                 tables.NewNodePayloadTable(db),
 	}
 }
 
@@ -362,9 +364,11 @@ func (s *metaInstanceStorage) InsertRuntimeInstance(ctx context.Context, metadat
 	}
 	requestedCores := uint32(0)
 	requestedMemory := uint32(0)
+	payloadNames := []string{}
 	for _, app := range applicationRows {
 		requestedCores += app.Cores
 		requestedMemory += app.Memory
+		payloadNames = append(payloadNames, app.PayloadName)
 	}
 
 	nodeRow, err := s.nodeTable.Get(ctx, tables.NodeKeys{
@@ -409,6 +413,15 @@ func (s *metaInstanceStorage) InsertRuntimeInstance(ctx context.Context, metadat
 	err = s.nodeTable.Update(ctx, execer, nodeRow.ID, nodeRow.Version, updateFields)
 	if err != nil {
 		return errHandler(err)
+	}
+	for _, payloadName := range payloadNames {
+		err = s.nodePayloadTable.Insert(ctx, execer, tables.NodePayloadRow{
+			NodeID:      runtimeInstance.NodeID,
+			PayloadName: payloadName,
+		})
+		if err != nil {
+			return errHandler(err)
+		}
 	}
 
 	// update the meta instance state version
@@ -476,9 +489,11 @@ func (s *metaInstanceStorage) DeleteRuntimeInstance(ctx context.Context, metadat
 	}
 	requestedCores := uint32(0)
 	requestedMemory := uint32(0)
+	payloadNames := []string{}
 	for _, app := range applicationRows {
 		requestedCores += app.Cores
 		requestedMemory += app.Memory
+		payloadNames = append(payloadNames, app.PayloadName)
 	}
 
 	// Get the corresponding runtimee instance
@@ -533,6 +548,13 @@ func (s *metaInstanceStorage) DeleteRuntimeInstance(ctx context.Context, metadat
 	err = s.nodeTable.Update(ctx, execer, nodeRow.ID, nodeRow.Version, updateFields)
 	if err != nil {
 		return errHandler(err)
+	}
+
+	for _, payloadName := range payloadNames {
+		err = s.nodePayloadTable.Delete(ctx, execer, nodeRow.ID, payloadName)
+		if err != nil {
+			return errHandler(err)
+		}
 	}
 
 	// update the meta instance state version

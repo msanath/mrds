@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/msanath/mrds/gen/api/mrdspb"
 	"github.com/msanath/mrds/internal/ledger/cluster"
 	"github.com/msanath/mrds/internal/ledger/computecapability"
@@ -21,7 +23,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-type serverOptions struct{}
+type serverOptions struct {
+	testMode bool
+}
 
 func main() {
 	so := serverOptions{}
@@ -33,6 +37,7 @@ func main() {
 			return so.Run(ctx)
 		},
 	}
+	cmd.Flags().BoolVar(&so.testMode, "test-mode", false, "Uses in-memory database. Data will be lost after server restart.")
 
 	err := cmd.Execute()
 	if err != nil {
@@ -50,13 +55,17 @@ func (o serverOptions) Run(ctx context.Context) error {
 	gServer := grpc.NewServer(
 		grpc.UnaryInterceptor(loggingInterceptor),
 	)
-	// dbConn, err := newDBConn()
-	// if err != nil {
-	// 	return err
-	// }
-	dbConn, err := test.NewTestSQLiteDB()
-	if err != nil {
-		return err
+	var dbConn *sqlx.DB
+	if o.testMode {
+		dbConn, err = test.NewTestSQLiteDB()
+		if err != nil {
+			return err
+		}
+	} else {
+		dbConn, err = newMySQLConn()
+		if err != nil {
+			return err
+		}
 	}
 
 	storage, err := sqlstorage.NewSQLStorage(dbConn, false)
@@ -96,20 +105,20 @@ func (o serverOptions) Run(ctx context.Context) error {
 	return gServer.Serve(lis)
 }
 
-// func newDBConn() (*sqlx.DB, error) {
-// 	mysqlConfig := &mysql.Config{
-// 		User:                 "root",
-// 		Addr:                 "127.0.0.1:3306",
-// 		DBName:               "mrds",
-// 		Passwd:               "",
-// 		ParseTime:            true,
-// 		AllowNativePasswords: true,
-// 	}
-// 	// dsn := "root:@tcp(127.0.0.1:3306)/?parseTime=true"
-// 	dsn := mysqlConfig.FormatDSN()
-// 	db, err := sqlx.Connect("mysql", dsn)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return db, nil
-// }
+func newMySQLConn() (*sqlx.DB, error) {
+	mysqlConfig := &mysql.Config{
+		User:                 "root",
+		Addr:                 "127.0.0.1:3306",
+		DBName:               "mrds",
+		Passwd:               "",
+		ParseTime:            true,
+		AllowNativePasswords: true,
+	}
+	// dsn := "root:@tcp(127.0.0.1:3306)/?parseTime=true"
+	dsn := mysqlConfig.FormatDSN()
+	db, err := sqlx.Connect("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
