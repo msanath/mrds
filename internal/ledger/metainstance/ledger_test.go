@@ -219,15 +219,6 @@ func TestOperationsLedger(t *testing.T) {
 	})
 
 	t.Run("Update Deployment ID Success", func(t *testing.T) {
-		// Mark the previous deployment ID as done and create another
-		dPlanUpdateResp, err = dl.UpdateDeploymentStatus(context.Background(), &deploymentplan.UpdateDeploymentStatusRequest{
-			Metadata:     dPlanUpdateResp.Record.Metadata,
-			DeploymentID: "test-deployment-1",
-			Status: deploymentplan.DeploymentStatus{
-				State: deploymentplan.DeploymentStateCompleted,
-			},
-		})
-		require.NoError(t, err)
 		dPlanUpdateResp, err = dl.AddDeployment(context.Background(), &deploymentplan.AddDeploymentRequest{
 			Metadata:     dPlanUpdateResp.Record.Metadata,
 			DeploymentID: "test-deployment-2",

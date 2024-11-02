@@ -70,7 +70,7 @@ func (o completeOperationOptions) Run(ctx context.Context) error {
 		o.printer.PrintError("Operation ID not found in meta instance")
 	}
 
-	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, metaInstanceResp.Record)
+	displayRecord, err := o.getter.GetDisplayMetaInstance(ctx, metaInstanceResp.Record)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (o completeOperationOptions) Run(ctx context.Context) error {
 
 	o.printer.PrintSuccess("Request sent to swap")
 	o.printer.PrintEmptyLine()
-	displayRecord, err = o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	displayRecord, err = o.getter.GetDisplayMetaInstance(ctx, updateResp.Record)
 	if err != nil {
 		return err
 	}

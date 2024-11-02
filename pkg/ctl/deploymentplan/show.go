@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/ctl/deploymentplan/getter"
 	"github.com/msanath/mrds/pkg/ctl/deploymentplan/printer"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -15,6 +16,7 @@ type deploymentPlanShowOptions struct {
 
 	deploymentPlanClient mrdspb.DeploymentPlansClient
 	printer              *printer.Printer
+	getter               *getter.Getter
 }
 
 func newDeploymentPlanShowCmd() *cobra.Command {
@@ -33,6 +35,7 @@ func newDeploymentPlanShowCmd() *cobra.Command {
 			o.name = args[0]
 			o.deploymentPlanClient = mrdspb.NewDeploymentPlansClient(conn)
 			o.printer = printer.NewPrinter()
+			o.getter = getter.NewGetter(conn)
 			return o.Run(cmd.Context())
 		},
 	}
@@ -45,7 +48,10 @@ func (o *deploymentPlanShowOptions) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	displayDeploymentPlan := convertGRPCDeploymentPlanToDisplayDeploymentPlan(resp.Record)
+	displayDeploymentPlan, err := o.getter.ConvertGRPCDeploymentPlanToDisplayDeploymentPlan(ctx, resp.Record)
+	if err != nil {
+		return err
+	}
 	o.printer.PrintDisplayDeploymentPlan(displayDeploymentPlan)
 	return nil
 }

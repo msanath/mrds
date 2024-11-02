@@ -91,7 +91,7 @@ func (p *Printer) PrintDisplayMetaInstanceList(metaInstances []types.DisplayMeta
 
 		operationsInfo := []string{}
 		for _, operation := range metaInstance.Operations {
-			operationsInfo = append(operationsInfo, fmt.Sprintf("ID: %s, Type: %s, State: %s", operation.ID, operation.Type, operation.Status.GetState().Value()))
+			operationsInfo = append(operationsInfo, fmt.Sprintf("ID: %s, Type: %s, State: %s", operation.ID, operation.GetType().Value(), operation.Status.GetState().Value()))
 		}
 		operationsStr := strings.Join(operationsInfo, "\n")
 

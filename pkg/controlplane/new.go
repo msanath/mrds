@@ -3,8 +3,9 @@ package controlplane
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/msanath/mrds/gen/api/mrdspb"
+	continuousdeployment "github.com/msanath/mrds/pkg/controlplane/continuous_deployment"
 	"github.com/msanath/mrds/pkg/controlplane/temporal/workers"
 
 	"github.com/msanath/gondolf/pkg/ctxslog"
@@ -34,21 +35,25 @@ func (c *ControlPlane) Start(ctx context.Context) error {
 	tc, err := temporalclient.Dial(temporalclient.Options{
 		HostPort:  "localhost:7233",
 		Namespace: "mrds",
+		Logger:    log,
 	})
 	if err != nil {
 		return err
 	}
 
-	workers.NewWorker(c.opts.MRDSConn, tc)
-
-	we, err := tc.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
-		ID:        fmt.Sprintf("create-deployment-%s", time.Now()),
-		TaskQueue: workers.DeploymentTaskQueue,
-	}, "CreateDeploymentWorkflow")
+	err = workers.NewWorker(ctx, c.opts.MRDSConn, tc)
 	if err != nil {
-		return fmt.Errorf("failed to start workflow: %w", err)
+		return fmt.Errorf("failed to start worker: %w", err)
 	}
-	log.Info("Started workflow", "workflowID", we.GetID())
+
+	deploymentManager := continuousdeployment.NewManager(tc, mrdspb.NewDeploymentPlansClient(c.opts.MRDSConn))
+
+	go func() {
+		err := deploymentManager.RunBlocking(ctx)
+		if err != nil {
+			log.Error("failed to run deployment manager", "error", err)
+		}
+	}()
 
 	return nil
 }

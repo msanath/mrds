@@ -226,6 +226,7 @@ func (l *ledger) AddDeployment(ctx context.Context, req *AddDeploymentRequest) (
 	}
 
 	// If there is an existing deployment InProgress, then we cannot add a new deployment
+	// ??? Why can't we add a new deployment when there is an existing deployment in progress?
 	for _, deployment := range existingPlan.Deployments {
 		if deployment.Status.State == DeploymentStateInProgress {
 			return nil, ledgererrors.NewLedgerError(
@@ -267,7 +268,7 @@ func (l *ledger) AddDeployment(ctx context.Context, req *AddDeploymentRequest) (
 		PayloadCoordinates: req.PayloadCoordinates,
 		InstanceCount:      req.InstanceCount,
 		Status: DeploymentStatus{
-			State:   DeploymentStateInProgress,
+			State:   DeploymentStatePending,
 			Message: "",
 		},
 	})

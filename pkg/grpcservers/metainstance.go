@@ -195,8 +195,9 @@ func (s *MetaInstanceService) AddRuntimeInstance(ctx context.Context, req *mrdsp
 			Version: req.Metadata.Version,
 		},
 		RuntimeInstance: metainstance.RuntimeInstance{
-			ID:     req.RuntimeInstance.Id,
-			NodeID: req.RuntimeInstance.NodeId,
+			ID:       req.RuntimeInstance.Id,
+			NodeID:   req.RuntimeInstance.NodeId,
+			IsActive: req.RuntimeInstance.IsActive,
 			Status: metainstance.RuntimeInstanceStatus{
 				State:   metainstance.RuntimeInstanceState(req.RuntimeInstance.Status.State.String()),
 				Message: req.RuntimeInstance.Status.Message,

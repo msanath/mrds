@@ -53,7 +53,7 @@ func (o swapInstanceOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, metaInstanceResp.Record)
+	displayRecord, err := o.getter.GetDisplayMetaInstance(ctx, metaInstanceResp.Record)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (o swapInstanceOptions) Run(ctx context.Context) error {
 
 	o.printer.PrintSuccess("Request sent to swap")
 	o.printer.PrintEmptyLine()
-	displayRecord, err = o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	displayRecord, err = o.getter.GetDisplayMetaInstance(ctx, updateResp.Record)
 	if err != nil {
 		return err
 	}

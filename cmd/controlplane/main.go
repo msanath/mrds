@@ -50,7 +50,6 @@ func (o serverOptions) Run(ctx context.Context) error {
 	})
 
 	cpErrChan := make(chan error)
-
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		err := cp.Start(ctx)

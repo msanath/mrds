@@ -1,7 +1,7 @@
 plans:
-  - name: "Plan1"
-    namespace: "default"
-    serviceName: "serviceA"
+  - name: "nginx-deployment-plan"
+    namespace: "nginx-namespace"
+    serviceName: "nginx-service"
     matchingComputeCapabilities:
       - capabilityType: "GPU"
         comparator: "gte"
@@ -13,7 +13,7 @@ plans:
         capabilityNames:
           - "intel-xeon"
     applications:
-      - payloadName: "app1"
+      - payloadName: "nginx-payload"
         resources:
           cores: 4
           memory: 256

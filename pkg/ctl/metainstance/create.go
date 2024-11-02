@@ -80,7 +80,7 @@ func (o createInstanceOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, createResp.Record)
+	displayRecord, err := o.getter.GetDisplayMetaInstance(ctx, createResp.Record)
 	if err != nil {
 		return err
 	}

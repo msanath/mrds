@@ -304,6 +304,24 @@ func TestDeployment(t *testing.T) {
 		updatedRecord = resp.Record
 	})
 
+	t.Run("UpdateDeploymentStatus to InProgress Success", func(t *testing.T) {
+		updateReq := &deploymentplan.UpdateDeploymentStatusRequest{
+			Metadata:     updatedRecord.Metadata,
+			DeploymentID: "test-deployment-1",
+			Status: deploymentplan.DeploymentStatus{
+				State:   deploymentplan.DeploymentStateInProgress,
+				Message: "Deployment is in progress",
+			},
+		}
+
+		resp, err := l.UpdateDeploymentStatus(context.Background(), updateReq)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, deploymentplan.DeploymentStateInProgress, resp.Record.Deployments[0].Status.State)
+		updatedRecord = resp.Record
+	})
+
 	t.Run("AddDeployment MissingPayloadCoordinates Failure", func(t *testing.T) {
 		addDeploymentReq := &deploymentplan.AddDeploymentRequest{
 			Metadata:     updatedRecord.Metadata,

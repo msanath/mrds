@@ -51,7 +51,7 @@ func (o *metaInstanceListOptions) Run(ctx context.Context) error {
 	// Convert gRPC MetaInstance records to display format
 	displayMetaInstances := make([]types.DisplayMetaInstance, 0, len(resp.Records))
 	for _, record := range resp.Records {
-		displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, record)
+		displayRecord, err := o.getter.GetDisplayMetaInstance(ctx, record)
 		if err != nil {
 			return err
 		}

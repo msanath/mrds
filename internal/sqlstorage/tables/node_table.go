@@ -239,7 +239,7 @@ func (s *NodeTable) getUniqueIDs(ctx context.Context, filters NodeSelectFilters)
 		params["payload_name_in"] = filters.PayloadNameIn
 	}
 	if len(filters.PayloadNameNotIn) > 0 {
-		filtersQuery = append(filtersQuery, "np.payload_name NOT IN (:payload_name_not_in) or np.payload_name IS NULL")
+		filtersQuery = append(filtersQuery, "(np.payload_name NOT IN (:payload_name_not_in) or np.payload_name IS NULL)")
 		params["payload_name_not_in"] = filters.PayloadNameNotIn
 	}
 

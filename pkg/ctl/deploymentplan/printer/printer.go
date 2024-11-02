@@ -7,15 +7,18 @@ import (
 
 	"github.com/msanath/gondolf/pkg/printer"
 	"github.com/msanath/mrds/pkg/ctl/deploymentplan/types"
+	metainstanceprinter "github.com/msanath/mrds/pkg/ctl/metainstance/printer"
 )
 
 type Printer struct {
 	printer.PlainText
+	metaInstancePrinter *metainstanceprinter.Printer
 }
 
 func NewPrinter() *Printer {
 	return &Printer{
-		PlainText: printer.NewPlainTextPrinter(),
+		PlainText:           printer.NewPlainTextPrinter(),
+		metaInstancePrinter: metainstanceprinter.NewPrinter(),
 	}
 }
 
@@ -89,19 +92,32 @@ func (p *Printer) PrintDisplayDeploymentPlan(plan types.DisplayDeploymentPlan) {
 	if len(plan.Deployments) == 0 {
 		p.PrintWarning("No deployments found")
 	} else {
-		tableHeaders := []string{"Deployment ID", "Instance Count", "State", "Message"}
+		tableHeaders := []string{"Deployment ID", "Instance Count", "State", "Message", "Payload Information"}
 		rows := make([][]string, 0)
 		for _, deployment := range plan.Deployments {
+
+			payloadInfo := []string{}
+			for _, payloadCoordinate := range deployment.PayloadCoordinates {
+				payloadInfo = append(payloadInfo, fmt.Sprintf("Payload Name: %s, Coordinates: %s", payloadCoordinate.PayloadName, payloadCoordinate.Coordinates))
+			}
+
 			rows = append(rows,
 				[]string{
-					deployment.ID,
-					strconv.Itoa(deployment.InstanceCount),
-					deployment.Status.State,
-					deployment.Status.Message,
+					deployment.GetID().Value(),
+					deployment.GetInstanceCount().Value(),
+					deployment.Status.GetState().Value(),
+					deployment.Status.GetMessage().Value(),
+					strings.Join(payloadInfo, "\n"),
 				},
 			)
 		}
 		p.PrintTable(tableHeaders, rows)
+	}
+
+	if len(plan.InstanceSummary.MetaInstances) > 0 {
+		p.PrintEmptyLine()
+		p.PrintHeader("Instance Summary")
+		p.metaInstancePrinter.PrintDisplayMetaInstanceList(plan.InstanceSummary.MetaInstances)
 	}
 }
 

@@ -84,7 +84,7 @@ func (o addRuntimeInstanceOptions) Run(ctx context.Context) error {
 	}
 
 	o.printer.PrintSuccess("Runtime instance added successfully")
-	displayRecord, err := o.getter.GetDisplayMetaInstances(ctx, updateResp.Record)
+	displayRecord, err := o.getter.GetDisplayMetaInstance(ctx, updateResp.Record)
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package mrdsactivities
+package mrds
 
 import (
 	"context"

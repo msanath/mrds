@@ -281,11 +281,17 @@ func (n *DisplayOperationStatus) GetState() printer.DisplayField {
 			if str == "OperationState_FAILED" {
 				return printer.RedText(str)
 			}
-			if str == "OperationState_PENDING_APPROVAL" {
-				return printer.RedText(str)
-			}
 			if str == "OperationState_SUCCEEDED" {
 				return printer.GreenText(str)
+			}
+			if str == "OperationState_PREPARING" {
+				return printer.YellowText(str)
+			}
+			if str == "OperationState_PENDING_APPROVAL" {
+				return printer.YellowText(str)
+			}
+			if str == "OperationState_APPROVED" {
+				return printer.YellowText(str)
 			}
 			return str
 		},

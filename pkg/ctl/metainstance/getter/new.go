@@ -22,7 +22,21 @@ func NewGetter(conn *grpc.ClientConn) *Getter {
 	}
 }
 
-func (g *Getter) GetDisplayMetaInstances(ctx context.Context, m *mrdspb.MetaInstance) (types.DisplayMetaInstance, error) {
+func (g *Getter) GetDisplayMetaInstances(ctx context.Context, m []*mrdspb.MetaInstance) ([]types.DisplayMetaInstance, error) {
+	var displayMetaInstances []types.DisplayMetaInstance
+
+	for _, metaInstance := range m {
+		displayMetaInstance, err := g.GetDisplayMetaInstance(ctx, metaInstance)
+		if err != nil {
+			return nil, err
+		}
+		displayMetaInstances = append(displayMetaInstances, displayMetaInstance)
+	}
+
+	return displayMetaInstances, nil
+}
+
+func (g *Getter) GetDisplayMetaInstance(ctx context.Context, m *mrdspb.MetaInstance) (types.DisplayMetaInstance, error) {
 	deploymentResp, err := g.deploymentPlansClient.GetByID(ctx, &mrdspb.GetDeploymentPlanByIDRequest{Id: m.DeploymentPlanId})
 	if err != nil {
 		return types.DisplayMetaInstance{}, err

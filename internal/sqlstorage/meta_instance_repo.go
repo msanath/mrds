@@ -393,14 +393,14 @@ func (s *metaInstanceStorage) InsertRuntimeInstance(ctx context.Context, metadat
 	if nodeRow.RemainingCores < requestedCores {
 		return ledgererrors.NewLedgerError(
 			ledgererrors.ErrRecordInsertConflict,
-			fmt.Sprintf("Node does not have enough cores to run the application. Requested: %d, Available: %d", requestedCores, nodeRow.RemainingCores),
+			fmt.Sprintf("Node does not have enough cores to run the application. Node: %s, Requested: %d, Available: %d", nodeRow.Name, requestedCores, nodeRow.RemainingCores),
 		)
 	}
 
 	if nodeRow.RemainingMemory < requestedMemory {
 		return ledgererrors.NewLedgerError(
 			ledgererrors.ErrRecordInsertConflict,
-			fmt.Sprintf("Node does not have enough memory to run the application. Requested: %d, Available: %d", requestedMemory, nodeRow.RemainingMemory),
+			fmt.Sprintf("Node does not have enough memory to run the application. Node: %s, Requested: %d, Available: %d", nodeRow.Name, requestedMemory, nodeRow.RemainingMemory),
 		)
 	}
 	newRemainingCores := nodeRow.RemainingCores - requestedCores

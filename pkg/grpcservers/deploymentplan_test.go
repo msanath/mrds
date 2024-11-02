@@ -104,14 +104,14 @@ func TestDeploymentPlanServer(t *testing.T) {
 		Metadata:     updateResp.Record.Metadata,
 		DeploymentId: updateResp.Record.Deployments[0].Id,
 		Status: &mrdspb.DeploymentStatus{
-			State:   mrdspb.DeploymentState_DeploymentState_COMPLETED,
+			State:   mrdspb.DeploymentState_DeploymentState_IN_PROGRESS,
 			Message: "Deployment completed",
 		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, updateResp)
 	require.Equal(t, "test-deployment-plan", updateResp.Record.Name)
-	require.Equal(t, mrdspb.DeploymentState_DeploymentState_COMPLETED, updateResp.Record.Deployments[0].Status.State)
+	require.Equal(t, mrdspb.DeploymentState_DeploymentState_IN_PROGRESS, updateResp.Record.Deployments[0].Status.State)
 
 	// list
 	listResp, err := client.List(ctx, &mrdspb.ListDeploymentPlanRequest{

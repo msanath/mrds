@@ -1,5 +1,7 @@
 package types
 
+import "github.com/msanath/mrds/pkg/ctl/metainstance/types"
+
 // DisplayDeploymentPlan represents the display version of the DeploymentPlanRecord.
 //
 //go:generate /Users/sanath/projects/gondolf/bin/cligen DisplayDeploymentPlan types types_gen.go
@@ -12,6 +14,7 @@ type DisplayDeploymentPlan struct {
 	MatchingComputeCapabilities []DisplayMatchingComputeCapability `json:"matching_compute_capabilities,omitempty"`
 	Applications                []DisplayApplication               `json:"applications,omitempty"`
 	Deployments                 []DisplayDeployment                `json:"deployments,omitempty"`
+	InstanceSummary             DisplayInstanceSummary             `json:"instance_summary,omitempty"`
 }
 
 // DisplayMetadata is the display representation of the core.Metadata in NodeRecord
@@ -79,4 +82,9 @@ type DisplayDeploymentStatus struct {
 type DisplayPayloadCoordinates struct {
 	PayloadName string `json:"payload_name,omitempty" displayName:"Payload Name"`
 	Coordinates string `json:"coordinates,omitempty" displayName:"Coordinates"`
+}
+
+// DisplayInstanceSummary represents the summary of instances in a DeploymentPlan
+type DisplayInstanceSummary struct {
+	MetaInstances []types.DisplayMetaInstance `json:"meta_instances,omitempty" doNotGen:"true"`
 }

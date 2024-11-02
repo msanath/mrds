@@ -1,7 +1,7 @@
-deployment_id: "deployment-123"
-deployment_plan_name: "Plan1"
+deployment_plan_name: "nginx-deployment-plan"
+deployment_id: "123"
 payload_coordinates:
-  - payload_name: "app1"
+  - payload_name: "nginx-payload"
     coordinates:
       dockerImage: "nginx:latest"
-instance_count: 3
+instance_count: 1

@@ -45,3 +45,10 @@ test:
 	go test ./...
 
 localbuild: clean build generate test
+
+.PHONY: prep
+prep:
+	./bin/mrds-ctl node create -m "test_manifests/node.yaml" && \
+	./bin/mrds-ctl deployment create -m test_manifests/deploymentplan.yaml && \
+	./bin/mrds-ctl deployment add-deployment -m test_manifests/deployment.yaml
+

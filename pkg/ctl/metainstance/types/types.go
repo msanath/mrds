@@ -50,6 +50,6 @@ type DisplayOperation struct {
 
 // DisplayOperationStatus represents the display version of OperationStatus.
 type DisplayOperationStatus struct {
-	State   string `json:"state,omitempty" displayName:"Operation State" greenTexts:"OperationState_SUCCEEDED" redTexts:"OperationState_FAILED,OperationState_PENDING_APPROVAL"`
+	State   string `json:"state,omitempty" displayName:"Operation State" yellowTexts:"OperationState_PREPARING,OperationState_PENDING_APPROVAL,OperationState_APPROVED" greenTexts:"OperationState_SUCCEEDED" redTexts:"OperationState_FAILED"`
 	Message string `json:"message,omitempty" displayName:"Status Message"`
 }

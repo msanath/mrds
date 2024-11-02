@@ -1,4 +1,4 @@
-package mrdsactivities
+package mrds
 
 import (
 	"context"
@@ -17,7 +17,6 @@ type DeploymentPlanActivities struct {
 // NewDeploymentPlanActivities creates a new instance of DeploymentPlanActivities.
 func NewDeploymentPlanActivities(client mrdspb.DeploymentPlansClient, registry worker.Registry) *DeploymentPlanActivities {
 	a := &DeploymentPlanActivities{client: client}
-	registry.RegisterActivity(a.CreateDeploymentPlan)
 	registry.RegisterActivity(a.GetDeploymentPlanByID)
 	registry.RegisterActivity(a.GetDeploymentPlanByName)
 	registry.RegisterActivity(a.UpdateDeploymentPlanStatus)
@@ -27,25 +26,6 @@ func NewDeploymentPlanActivities(client mrdspb.DeploymentPlansClient, registry w
 	registry.RegisterActivity(a.UpdateDeploymentStatus)
 
 	return a
-}
-
-// CreateDeploymentPlan is an activity that interacts with the gRPC service to create a DeploymentPlan.
-func (c *DeploymentPlanActivities) CreateDeploymentPlan(ctx context.Context, req *mrdspb.CreateDeploymentPlanRequest) (*mrdspb.CreateDeploymentPlanResponse, error) {
-	activity.GetLogger(ctx).Info("Creating DeploymentPlan", "request", req)
-
-	// Check if the context has a deadline to handle timeout.
-	if deadline, ok := ctx.Deadline(); ok {
-		activity.GetLogger(ctx).Info("Context has a deadline: %v", deadline)
-	}
-
-	// Call gRPC method with context for timeout
-	resp, err := c.client.Create(ctx, req)
-	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to create DeploymentPlan", "error", err)
-		return nil, fmt.Errorf("failed to create DeploymentPlan: %w", err)
-	}
-
-	return resp, nil
 }
 
 // GetDeploymentPlanByID fetches DeploymentPlan details based on ID.
@@ -125,15 +105,38 @@ func (c *DeploymentPlanActivities) AddDeployment(ctx context.Context, req *mrdsp
 	return resp, nil
 }
 
-// UpdateDeploymentStatus updates the status of a deployment in a DeploymentPlan.
-func (c *DeploymentPlanActivities) UpdateDeploymentStatus(ctx context.Context, req *mrdspb.UpdateDeploymentStatusRequest) (*mrdspb.UpdateDeploymentPlanResponse, error) {
-	activity.GetLogger(ctx).Info("Updating Deployment status in DeploymentPlan", "request", req)
+type UpdateDeploymentStatusRequest struct {
+	DeploymentPlanID string
+	DeploymentID     string
+	Status           *mrdspb.DeploymentStatus
+}
 
-	resp, err := c.client.UpdateDeploymentStatus(ctx, req)
+type UpdateDeploymentStatusResponse struct {
+	DeploymentPlan *mrdspb.DeploymentPlanRecord
+}
+
+// UpdateDeploymentStatus updates the status of a deployment in a DeploymentPlan.
+func (c *DeploymentPlanActivities) UpdateDeploymentStatus(ctx context.Context, req *UpdateDeploymentStatusRequest) (*UpdateDeploymentStatusResponse, error) {
+	activity.GetLogger(ctx).Info("Updating Deployment status", "request", req)
+
+	// Get the DeploymentPlan by ID
+	deploymentPlanResp, err := c.GetDeploymentPlanByID(ctx, &mrdspb.GetDeploymentPlanByIDRequest{Id: req.DeploymentPlanID})
 	if err != nil {
-		activity.GetLogger(ctx).Error("Failed to update Deployment status in DeploymentPlan", "error", err)
-		return nil, fmt.Errorf("failed to update Deployment status in DeploymentPlan: %w", err)
+		activity.GetLogger(ctx).Error("Failed to get DeploymentPlan by ID", "error", err)
+		return nil, fmt.Errorf("failed to get DeploymentPlan by ID: %w", err)
 	}
 
-	return resp, nil
+	updateReq := &mrdspb.UpdateDeploymentStatusRequest{
+		Metadata:     deploymentPlanResp.Record.Metadata,
+		DeploymentId: req.DeploymentID,
+		Status:       req.Status,
+	}
+
+	resp, err := c.client.UpdateDeploymentStatus(ctx, updateReq)
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update Deployment status", "error", err)
+		return nil, fmt.Errorf("failed to update Deployment status: %w", err)
+	}
+
+	return &UpdateDeploymentStatusResponse{DeploymentPlan: resp.Record}, nil
 }
