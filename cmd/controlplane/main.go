@@ -8,7 +8,11 @@ import (
 	"syscall"
 
 	"github.com/msanath/mrds/controlplane"
+	"github.com/msanath/mrds/gen/api/mrdspb"
+	"github.com/msanath/mrds/pkg/runtime/kind"
 	temporalclient "go.temporal.io/sdk/client"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/msanath/gondolf/pkg/ctxslog"
 	"github.com/spf13/cobra"
@@ -54,7 +58,26 @@ func (o serverOptions) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cp := controlplane.NewTemporalControlPlane(conn, tc)
+
+	// Create a kind runtime activity.
+	kubeconfig := clientcmd.RecommendedHomeFile
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return err
+	}
+	// Create a clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	kindRuntime := kind.NewKindRuntime(
+		mrdspb.NewMetaInstancesClient(conn),
+		mrdspb.NewDeploymentPlansClient(conn),
+		mrdspb.NewNodesClient(conn),
+		clientset,
+	)
+
+	cp := controlplane.NewTemporalControlPlane(conn, tc, kindRuntime)
 
 	cpErrChan := make(chan error)
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

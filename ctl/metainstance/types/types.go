@@ -36,7 +36,7 @@ type DisplayRuntimeInstance struct {
 
 // DisplayRuntimeInstanceStatus represents the display version of RuntimeInstanceStatus.
 type DisplayRuntimeInstanceStatus struct {
-	State   string `json:"state,omitempty" displayName:"Runtime State" greenTexts:"RuntimeState_RUNNING" redTexts:"RuntimeState_TERMINATED,RuntimeState_PENDING"`
+	State   string `json:"state,omitempty" displayName:"Runtime State" yellowTexts:"RuntimeState_STARTING,RuntimeState_UPDATING,RuntimeState_TERMINATING" greenTexts:"RuntimeState_RUNNING,RuntimeState_TERMINATED" redTexts:"RuntimeState_PENDING,RuntimeState_FAILED"`
 	Message string `json:"message,omitempty" displayName:"Status Message"`
 }
 

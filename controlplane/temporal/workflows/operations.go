@@ -15,13 +15,13 @@ import (
 type OperationsWorkflow struct {
 	metaInstanceActivities *mrds.MetaInstanceActivities
 	schedulerActivities    *scheduler.SchedulerActivities
-	runtimeActivities      runtime.RuntimeActivity
+	runtimeActivities      runtime.RuntimeActivities
 }
 
 func NewOperationsWorkflow(
 	metaInstanceActivities *mrds.MetaInstanceActivities,
 	schedulerActivities *scheduler.SchedulerActivities,
-	runtimeActivities runtime.RuntimeActivity,
+	runtimeActivities runtime.RuntimeActivities,
 	registry worker.Registry,
 ) *OperationsWorkflow {
 	d := &OperationsWorkflow{
@@ -42,7 +42,11 @@ type RunOperationWorkflowParams struct {
 	OperationType  mrdspb.OperationType
 }
 
-func (d *OperationsWorkflow) RunOperation(ctx workflow.Context, params RunOperationWorkflowParams) (*mrdspb.UpdateMetaInstanceResponse, error) {
+type RunOperationWorkflowResponse struct {
+	MetaInstance *mrdspb.MetaInstance
+}
+
+func (d *OperationsWorkflow) RunOperation(ctx workflow.Context, params RunOperationWorkflowParams) (*RunOperationWorkflowResponse, error) {
 	log := workflow.GetLogger(ctx)
 	ao := workflow.ActivityOptions{
 		ScheduleToCloseTimeout: 1 * time.Hour,
@@ -136,28 +140,30 @@ func (d *OperationsWorkflow) RunOperation(ctx workflow.Context, params RunOperat
 				fallthrough
 			case mrdspb.OperationType_OperationType_UPDATE:
 				log.Info("Starting runtime instance", "metaInstance", waitResponse.MetaInstance, "runtimeInstance", ri)
-				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StartInstance, runtime.RuntimeActivityParams{
+				var runtimeActivityResponse runtime.RuntimeActivityResponse
+				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StartInstance, runtime.RuntimeActivityRequest{
 					MetaInstanceID:    params.MetaInstanceID,
 					RuntimeInstanceID: ri.Id,
-				}).Get(ctx, &updateMetaInstanceResponse)
+				}).Get(ctx, &runtimeActivityResponse)
 				if err != nil {
 					activityErr = err
 					break
 				}
-				log.Info("Started runtime instance", "metaInstance", updateMetaInstanceResponse.Record, "runtimeInstance", ri)
+				log.Info("Started runtime instance", "metaInstance", runtimeActivityResponse.MetaInstance, "runtimeInstance", ri)
 
 			// If the operation type is relocate - stop the instance and remove it.
 			case mrdspb.OperationType_OperationType_RELOCATE:
 				log.Info("Stopping runtime instance", "metaInstance", waitResponse.MetaInstance, "runtimeInstance", ri)
-				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StopInstance, runtime.RuntimeActivityParams{
+				var runtimeActivityResponse runtime.RuntimeActivityResponse
+				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StopInstance, runtime.RuntimeActivityRequest{
 					MetaInstanceID:    params.MetaInstanceID,
 					RuntimeInstanceID: ri.Id,
-				}).Get(ctx, &updateMetaInstanceResponse)
+				}).Get(ctx, &runtimeActivityResponse)
 				if err != nil {
 					activityErr = err
 					break
 				}
-				log.Info("Stopped runtime instance", "metaInstance", waitResponse.MetaInstance, "runtimeInstance", ri)
+				log.Info("Stopped runtime instance", "metaInstance", runtimeActivityResponse.MetaInstance, "runtimeInstance", ri)
 
 				// Remove the runtime instance.
 				var removeRuntimeInstanceResponse mrds.RemoveRuntimeInstanceResponse
@@ -176,15 +182,16 @@ func (d *OperationsWorkflow) RunOperation(ctx workflow.Context, params RunOperat
 			// If the operation type is relocate - start the passive instance as the relocate operation has been approved.
 			case mrdspb.OperationType_OperationType_RELOCATE:
 				log.Info("Starting runtime instance", "metaInstance", waitResponse.MetaInstance, "runtimeInstance", ri)
-				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StartInstance, runtime.RuntimeActivityParams{
+				var runtimeActivityResponse runtime.RuntimeActivityResponse
+				err := workflow.ExecuteActivity(ctx, d.runtimeActivities.StartInstance, runtime.RuntimeActivityRequest{
 					MetaInstanceID:    params.MetaInstanceID,
 					RuntimeInstanceID: ri.Id,
-				}).Get(ctx, &updateMetaInstanceResponse)
+				}).Get(ctx, &runtimeActivityResponse)
 				if err != nil {
 					activityErr = err
 					break
 				}
-				log.Info("Started runtime instance", "metaInstance", updateMetaInstanceResponse.Record, "runtimeInstance", ri)
+				log.Info("Started runtime instance", "metaInstance", runtimeActivityResponse.MetaInstance, "runtimeInstance", ri)
 			}
 		}
 	}
@@ -217,5 +224,5 @@ func (d *OperationsWorkflow) RunOperation(ctx workflow.Context, params RunOperat
 		return nil, err
 	}
 
-	return &updateMetaInstanceResponse, nil
+	return &RunOperationWorkflowResponse{MetaInstance: updateOperationStatusResponse.MetaInstance}, nil
 }

@@ -214,14 +214,26 @@ func (n *DisplayRuntimeInstanceStatus) GetState() printer.DisplayField {
 		ColumnTag:   "",
 		Value: func() string {
 			str := n.State
-			if str == "RuntimeState_TERMINATED" {
+			if str == "RuntimeState_PENDING" {
 				return printer.RedText(str)
 			}
-			if str == "RuntimeState_PENDING" {
+			if str == "RuntimeState_FAILED" {
 				return printer.RedText(str)
 			}
 			if str == "RuntimeState_RUNNING" {
 				return printer.GreenText(str)
+			}
+			if str == "RuntimeState_TERMINATED" {
+				return printer.GreenText(str)
+			}
+			if str == "RuntimeState_STARTING" {
+				return printer.YellowText(str)
+			}
+			if str == "RuntimeState_UPDATING" {
+				return printer.YellowText(str)
+			}
+			if str == "RuntimeState_TERMINATING" {
+				return printer.YellowText(str)
 			}
 			return str
 		},

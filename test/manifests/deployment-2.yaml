@@ -1,7 +1,7 @@
 deployment_plan_name: "nginx-deployment-plan"
-deployment_id: "123"
+deployment_id: "deployment-2"
 payload_coordinates:
   - payload_name: "nginx-payload"
     coordinates:
       image: "nginx:latest"
-instance_count: 1
+instance_count: 3

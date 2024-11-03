@@ -10,6 +10,7 @@ import (
 	"github.com/msanath/mrds/controlplane/temporal/activities/mrds"
 	"github.com/msanath/mrds/gen/api/mrdspb"
 
+	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -38,8 +39,9 @@ func NewDeploymentWorkflow(
 const RunDeploymentWorkflowName = "RunDeployment"
 
 type RunDeploymentWorkflowParams struct {
-	DeploymentPlan *mrdspb.DeploymentPlanRecord
-	Deployment     *mrdspb.Deployment
+	DeploymentPlan      *mrdspb.DeploymentPlanRecord
+	Deployment          *mrdspb.Deployment
+	ChildWorkflowParams []RunOperationWorkflowParams
 }
 
 func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeploymentWorkflowParams) error {
@@ -105,7 +107,6 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 	}
 	metaInstances = listMetaInstancesResponse.Records
 
-	var operationFutures []workflow.Future
 	for _, instance := range metaInstances {
 		if instance.DeploymentId != params.Deployment.Id {
 			var updateDeploymentIDResponse mrds.UpdateDeploymentIDResponse
@@ -119,9 +120,19 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 			instance = updateDeploymentIDResponse.MetaInstance
 		}
 
+		alreadyDone := false
+		for _, param := range params.ChildWorkflowParams {
+			if param.MetaInstanceID == instance.Metadata.Id {
+				alreadyDone = true
+				break
+			}
+		}
+		if alreadyDone {
+			continue
+		}
+
 		if len(instance.RuntimeInstances) == 0 {
 			operationID := fmt.Sprintf("CREATE-%s", uuid.New().String())
-
 			var addOperationResponse mrds.AddOperationResponse
 			err := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.AddOperation, &mrds.AddOperationRequest{
 				MetaInstanceID: instance.Metadata.Id,
@@ -139,20 +150,11 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 				return err
 			}
 
-			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID: fmt.Sprintf("%s-%s", params.DeploymentPlan.Name, operationID),
-			}
-			ctx = workflow.WithChildOptions(ctx, cwo)
-			operationFutures = append(operationFutures, workflow.ExecuteChildWorkflow(
-				ctx,
-				OperationsWorkflowName,
-				RunOperationWorkflowParams{
-					MetaInstanceID: instance.Metadata.Id,
-					OperationID:    operationID,
-					OperationType:  mrdspb.OperationType_OperationType_CREATE,
-				},
-			))
-
+			params.ChildWorkflowParams = append(params.ChildWorkflowParams, RunOperationWorkflowParams{
+				OperationID:    operationID,
+				OperationType:  mrdspb.OperationType_OperationType_CREATE,
+				MetaInstanceID: instance.Metadata.Id,
+			})
 		} else {
 			operationID := fmt.Sprintf("UPDATE-%s", uuid.New().String())
 			var addOperationResponse mrds.AddOperationResponse
@@ -172,29 +174,56 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 				return err
 			}
 
+			params.ChildWorkflowParams = append(params.ChildWorkflowParams, RunOperationWorkflowParams{
+				OperationID:    operationID,
+				OperationType:  mrdspb.OperationType_OperationType_UPDATE,
+				MetaInstanceID: instance.Metadata.Id,
+			})
+		}
+	}
+
+	err = workflow.ExecuteActivity(ctx, d.metaInstanceActivities.ListMetaInstance, &mrdspb.ListMetaInstanceRequest{
+		DeploymentPlanIdIn: []string{params.DeploymentPlan.Metadata.Id},
+	}).Get(ctx, &listMetaInstancesResponse)
+	if err != nil {
+		return err
+	}
+	metaInstances = listMetaInstancesResponse.Records
+
+	var operationFutures []workflow.Future
+	for _, instance := range metaInstances {
+		for _, operation := range instance.Operations {
+			if operation.Type != mrdspb.OperationType_OperationType_CREATE && operation.Type != mrdspb.OperationType_OperationType_UPDATE {
+				continue
+			}
+			if operation.Status.State != mrdspb.OperationState_OperationState_PREPARING {
+				continue
+			}
 			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID: fmt.Sprintf("%s-%s", params.DeploymentPlan.Name, operationID),
+				WorkflowID:            fmt.Sprintf("%s-%s", params.DeploymentPlan.Name, operation.Id),
+				WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
 			}
 			ctx = workflow.WithChildOptions(ctx, cwo)
 			operationFutures = append(operationFutures, workflow.ExecuteChildWorkflow(
 				ctx,
 				OperationsWorkflowName,
 				RunOperationWorkflowParams{
+					OperationID:    operation.Id,
+					OperationType:  operation.Type,
 					MetaInstanceID: instance.Metadata.Id,
-					OperationID:    operationID,
-					OperationType:  mrdspb.OperationType_OperationType_UPDATE,
 				},
 			))
 		}
 	}
 
+	// Wait for all operations to complete
 	for _, f := range operationFutures {
-		var updateMetaInstanceResponse mrdspb.UpdateMetaInstanceResponse
-		err := f.Get(ctx, &updateMetaInstanceResponse)
+		var runOperationWorkflowResponse RunOperationWorkflowResponse
+		err := f.Get(ctx, &runOperationWorkflowResponse)
 		if err != nil {
 			return err
 		}
-		workflow.GetLogger(ctx).Info("Operation completed", "MetaInstanceID", updateMetaInstanceResponse.Record.Metadata.Id)
+		workflow.GetLogger(ctx).Info("Operation completed", "MetaInstance", runOperationWorkflowResponse.MetaInstance)
 	}
 
 	// Mark the deployment as completed

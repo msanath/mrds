@@ -1,11 +1,12 @@
 // This file implements a local k8s kind cluster runtime, which is meant to be used for testing purposes.
-package runtime
+package kind
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	"github.com/msanath/mrds/controlplane/temporal/activities/runtime"
 	"github.com/msanath/mrds/gen/api/mrdspb"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
@@ -14,16 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-type RuntimeActivity interface {
-	StartInstance(ctx context.Context, req *RuntimeActivityParams) (*mrdspb.UpdateMetaInstanceResponse, error)
-	StopInstance(ctx context.Context, req *RuntimeActivityParams) (*mrdspb.UpdateMetaInstanceResponse, error)
-}
-
-type RuntimeActivityParams struct {
-	MetaInstanceID    string
-	RuntimeInstanceID string
-}
 
 type KindRuntime struct {
 	metaInstancesClient  mrdspb.MetaInstancesClient
@@ -38,22 +29,22 @@ func NewKindRuntime(
 	deploymentPlanClient mrdspb.DeploymentPlansClient,
 	nodesClient mrdspb.NodesClient,
 	k8sClientSet *kubernetes.Clientset,
-	registry worker.Registry,
-) RuntimeActivity {
+) runtime.RuntimeActivities {
 	a := &KindRuntime{
 		metaInstancesClient:  metaInstancesClient,
 		deploymentPlanClient: deploymentPlanClient,
 		nodesClient:          nodesClient,
 		k8sClientSet:         k8sClientSet,
 	}
-
-	registry.RegisterActivity(a.StartInstance)
-	registry.RegisterActivity(a.StopInstance)
-
 	return a
 }
 
-func (k *KindRuntime) StartInstance(ctx context.Context, req *RuntimeActivityParams) (*mrdspb.UpdateMetaInstanceResponse, error) {
+func (k *KindRuntime) Register(w worker.Registry) {
+	w.RegisterActivity(k.StartInstance)
+	w.RegisterActivity(k.StopInstance)
+}
+
+func (k *KindRuntime) StartInstance(ctx context.Context, req *runtime.RuntimeActivityRequest) (*runtime.RuntimeActivityResponse, error) {
 	activity.GetLogger(ctx).Info("StartInstance", "request", req)
 
 	runtimeDetails, err := k.getRuntimeDetails(ctx, req.MetaInstanceID, req.RuntimeInstanceID)
@@ -61,15 +52,10 @@ func (k *KindRuntime) StartInstance(ctx context.Context, req *RuntimeActivityPar
 		return nil, err
 	}
 
-	updateResp, err := k.buildAndCreatePod(ctx, runtimeDetails)
-	if err != nil {
-		return nil, err
-	}
-
-	return updateResp, err
+	return k.buildAndCreatePod(ctx, runtimeDetails)
 }
 
-func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *runtimeDetails) (*mrdspb.UpdateMetaInstanceResponse, error) {
+func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *runtimeDetails) (*runtime.RuntimeActivityResponse, error) {
 	activity.GetLogger(ctx).Info("Creating Pod")
 
 	var deployment *mrdspb.Deployment
@@ -170,7 +156,7 @@ func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *run
 			// Check if the pod is in the 'Running' phase
 			if pod.Status.Phase == corev1.PodRunning {
 				activity.GetLogger(ctx).Info("Pod is running", "pod", pod)
-				return updateResp, nil
+				return &runtime.RuntimeActivityResponse{MetaInstance: updateResp.Record}, nil
 			} else {
 				activity.GetLogger(ctx).Info("Pod is not running yet", "pod", pod)
 			}
@@ -178,7 +164,7 @@ func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *run
 	}
 }
 
-func (k *KindRuntime) StopInstance(ctx context.Context, req *RuntimeActivityParams) (*mrdspb.UpdateMetaInstanceResponse, error) {
+func (k *KindRuntime) StopInstance(ctx context.Context, req *runtime.RuntimeActivityRequest) (*runtime.RuntimeActivityResponse, error) {
 	activity.GetLogger(ctx).Info("StopInstance", "request", req)
 
 	runtimeDetails, err := k.getRuntimeDetails(ctx, req.MetaInstanceID, req.RuntimeInstanceID)
@@ -195,7 +181,7 @@ func (k *KindRuntime) StopInstance(ctx context.Context, req *RuntimeActivityPara
 		},
 	})
 
-	return updateResp, err
+	return &runtime.RuntimeActivityResponse{MetaInstance: updateResp.Record}, err
 }
 
 type runtimeDetails struct {

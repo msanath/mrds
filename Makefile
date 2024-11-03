@@ -6,8 +6,10 @@ PROTO_SCRIPT := scripts/generate_proto.sh
 KIND_CONFIG := test/manifests/kind_config.yaml
 NODE_CONFIG := test/manifests/node.yaml
 DEPLOYMENT_PLAN := test/manifests/deploymentplan.yaml
-DEPLOYMENT_CONFIG := test/manifests/deployment.yaml
+DEPLOYMENT_CONFIG := test/manifests/deployment-1.yaml
 KIND_CLUSTER_NAME := kind
+DB_USER := root
+DB_NAME := mrds
 
 # Define nodes to add to the kind cluster
 KIND_NODES := kind-worker kind-worker2 kind-worker3 kind-worker4
@@ -93,3 +95,11 @@ add-deployment: ## Create a deployment in the cluster
 help: ## Display this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 	sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# Reset the database
+.PHONY: local-db-reset
+local-db-reset:
+	@echo "Dropping database..."
+	mysql -u $(DB_USER) -e "DROP DATABASE IF EXISTS $(DB_NAME);"
+	@echo "Creating database..."
+	mysql -u $(DB_USER) -e "CREATE DATABASE $(DB_NAME);"
