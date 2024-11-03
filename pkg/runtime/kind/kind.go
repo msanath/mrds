@@ -110,7 +110,7 @@ func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *run
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	timeout := time.After(2 * time.Minute) // Set a timeout period
+	timeout := time.After(5 * time.Minute) // Set a timeout period
 
 	for {
 		select {
@@ -172,16 +172,88 @@ func (k *KindRuntime) StopInstance(ctx context.Context, req *runtime.RuntimeActi
 		return nil, err
 	}
 
-	// Update the runtime state to stopped.
-	updateResp, err := k.metaInstancesClient.UpdateRuntimeStatus(ctx, &mrdspb.UpdateRuntimeStatusRequest{
-		Metadata:          runtimeDetails.MetaInstance.Metadata,
-		RuntimeInstanceId: req.RuntimeInstanceID,
-		Status: &mrdspb.RuntimeInstanceStatus{
-			State: mrdspb.RuntimeInstanceState_RuntimeState_TERMINATED,
-		},
-	})
+	podName := runtimeDetails.RuntimeInstance.Id
+	namespace := "default"
 
-	return &runtime.RuntimeActivityResponse{MetaInstance: updateResp.Record}, err
+	err = k.k8sClientSet.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			activity.GetLogger(ctx).Info("Pod does not exist", "pod", podName)
+			return &runtime.RuntimeActivityResponse{MetaInstance: runtimeDetails.MetaInstance}, nil
+		}
+		activity.GetLogger(ctx).Error("Failed to delete pod", "error", err)
+		return nil, fmt.Errorf("failed to delete pod: %v", err)
+	}
+
+	activity.GetLogger(ctx).Info("Pod deleted", "pod", podName)
+
+	// DUPLICATE CODE FROM ABOVE. TODO: OPTIMIZE
+	// Check pod status every 5 seconds
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(5 * time.Minute) // Set a timeout period
+
+	for {
+		isDeleted := false
+		select {
+		case <-timeout:
+			activity.GetLogger(ctx).Error("Timed out waiting for pod to delete")
+			return nil, fmt.Errorf("timed out waiting for pod %s to terminate", podName)
+		case <-ticker.C:
+			pod, err := k.k8sClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					activity.GetLogger(ctx).Info("Pod does not exist", "pod", podName)
+					isDeleted = true
+				} else {
+					activity.GetLogger(ctx).Error("Failed to get pod", "error", err)
+					continue
+				}
+			}
+
+			var message string
+			var state mrdspb.RuntimeInstanceState
+			if !isDeleted {
+				switch pod.Status.Phase {
+				case corev1.PodPending:
+					state = mrdspb.RuntimeInstanceState_RuntimeState_STARTING
+				case corev1.PodRunning:
+					state = mrdspb.RuntimeInstanceState_RuntimeState_RUNNING
+				case corev1.PodSucceeded:
+					state = mrdspb.RuntimeInstanceState_RuntimeState_TERMINATED
+				case corev1.PodFailed:
+					state = mrdspb.RuntimeInstanceState_RuntimeState_FAILED
+				case corev1.PodUnknown:
+					state = mrdspb.RuntimeInstanceState_RuntimeState_UNKNOWN
+				}
+				message = pod.Status.Message
+			} else {
+				state = mrdspb.RuntimeInstanceState_RuntimeState_TERMINATED
+				message = "Pod terminated"
+			}
+
+			// Update the runtime state to running.
+			updateResp, err := k.metaInstancesClient.UpdateRuntimeStatus(ctx, &mrdspb.UpdateRuntimeStatusRequest{
+				Metadata:          runtimeDetails.MetaInstance.Metadata,
+				RuntimeInstanceId: runtimeDetails.RuntimeInstance.Id,
+				Status: &mrdspb.RuntimeInstanceStatus{
+					State:   state,
+					Message: message,
+				},
+			})
+			if err != nil {
+				activity.GetLogger(ctx).Error("Failed to update runtime status", "error", err.Error())
+				return nil, err
+			}
+			runtimeDetails.MetaInstance = updateResp.Record
+
+			if isDeleted {
+				activity.GetLogger(ctx).Info("Pod is terminated", "pod", pod)
+				return &runtime.RuntimeActivityResponse{MetaInstance: updateResp.Record}, nil
+			}
+		}
+	}
 }
 
 type runtimeDetails struct {

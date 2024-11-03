@@ -57,7 +57,7 @@ run-controlplane: ## Run the control plane locally
 
 .PHONY: run-apiserver
 run-apiserver: ## Run the API server locally
-	./bin/mrds-apiserver --test-mode
+	./bin/mrds-apiserver
 
 .PHONY: run-temporal
 run-temporal: ## Run the Temporal server locally

@@ -26,6 +26,7 @@ func NewMetaInstanceActivities(client mrdspb.MetaInstancesClient, registry worke
 	registry.RegisterActivity(a.DeleteMetaInstance)
 	registry.RegisterActivity(a.AddRuntimeInstance)
 	registry.RegisterActivity(a.UpdateRuntimeStatus)
+	registry.RegisterActivity(a.UpdateRuntimeActiveState)
 	registry.RegisterActivity(a.RemoveRuntimeInstance)
 	registry.RegisterActivity(a.AddOperation)
 	registry.RegisterActivity(a.UpdateOperationStatus)
@@ -185,6 +186,42 @@ func (c *MetaInstanceActivities) UpdateRuntimeStatus(ctx context.Context, req *U
 	}
 
 	return &UpdateRuntimeStatusResponse{
+		MetaInstance: resp.Record,
+	}, nil
+}
+
+type UpdateRuntimeActiveStateRequest struct {
+	MetaInstanceID    string
+	RuntimeInstanceID string
+	IsActive          bool
+}
+
+type UpdateRuntimeActiveStateResponse struct {
+	MetaInstance *mrdspb.MetaInstance
+}
+
+// UpdateRuntimeActiveState is an activity that interacts with the gRPC service to update the active state of a RuntimeInstance.
+func (c *MetaInstanceActivities) UpdateRuntimeActiveState(ctx context.Context, req *UpdateRuntimeActiveStateRequest) (*UpdateRuntimeActiveStateResponse, error) {
+	activity.GetLogger(ctx).Info("Updating RuntimeInstance active state", "request", req)
+
+	// Get the Meta Instance by ID
+	metaInstance, err := c.GetMetaInstanceByID(ctx, &mrdspb.GetMetaInstanceByIDRequest{Id: req.MetaInstanceID})
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to get MetaInstance by ID", "error", err)
+		return nil, fmt.Errorf("failed to get MetaInstance by ID: %w", err)
+	}
+
+	resp, err := c.client.UpdateRuntimeActiveState(ctx, &mrdspb.UpdateRuntimeActiveStateRequest{
+		Metadata:          metaInstance.Record.Metadata,
+		RuntimeInstanceId: req.RuntimeInstanceID,
+		IsActive:          req.IsActive,
+	})
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update RuntimeInstance active state", "error", err)
+		return nil, fmt.Errorf("failed to update RuntimeInstance active state: %w", err)
+	}
+
+	return &UpdateRuntimeActiveStateResponse{
 		MetaInstance: resp.Record,
 	}, nil
 }

@@ -38,8 +38,13 @@ type AllocateRuntimeInstanceParams struct {
 	IsActive       bool // Indicates if the instance is expected to be active or not.
 }
 
+type AllocateRuntimeInstanceResponse struct {
+	MetaInstance    *mrdspb.MetaInstance
+	RuntimeInstance *mrdspb.RuntimeInstance
+}
+
 // CreateCluster is an activity that interacts with the gRPC service to create a Cluster.
-func (c *SchedulerActivities) AllocateRuntimeInstance(ctx context.Context, req *AllocateRuntimeInstanceParams) (*mrdspb.UpdateMetaInstanceResponse, error) {
+func (c *SchedulerActivities) AllocateRuntimeInstance(ctx context.Context, req *AllocateRuntimeInstanceParams) (*AllocateRuntimeInstanceResponse, error) {
 	activity.GetLogger(ctx).Info("Creating Cluster", "request", req)
 
 	// Get the meta instance
@@ -51,6 +56,16 @@ func (c *SchedulerActivities) AllocateRuntimeInstance(ctx context.Context, req *
 		return nil, fmt.Errorf("failed to get MetaInstance: %w", err)
 	}
 	metaInstance := metaInstanceGetResp.Record
+
+	for _, instance := range metaInstance.RuntimeInstances {
+		if instance.IsActive == req.IsActive {
+			activity.GetLogger(ctx).Error("An instance with the same IsActive value already exists")
+			return &AllocateRuntimeInstanceResponse{
+				MetaInstance:    metaInstance,
+				RuntimeInstance: instance,
+			}, nil
+		}
+	}
 
 	// Get the coresponding deployment Plan
 	deploymentPlanGetResp, err := c.deploymentPlansClient.GetByID(ctx, &mrdspb.GetDeploymentPlanByIDRequest{
@@ -102,22 +117,27 @@ func (c *SchedulerActivities) AllocateRuntimeInstance(ctx context.Context, req *
 	}
 
 	// Create the runtime instance
-	updateResp, err := c.metaInstancesClient.AddRuntimeInstance(ctx, &mrdspb.AddRuntimeInstanceRequest{
-		Metadata: metaInstanceGetResp.Record.Metadata,
-		RuntimeInstance: &mrdspb.RuntimeInstance{
-			Id:       uuid.New().String(),
-			NodeId:   chosenNode.Metadata.Id,
-			IsActive: req.IsActive,
-			Status: &mrdspb.RuntimeInstanceStatus{
-				State:   mrdspb.RuntimeInstanceState_RuntimeState_PENDING,
-				Message: "",
-			},
+	runtimeInstance := &mrdspb.RuntimeInstance{
+		Id:       uuid.New().String(),
+		NodeId:   chosenNode.Metadata.Id,
+		IsActive: req.IsActive,
+		Status: &mrdspb.RuntimeInstanceStatus{
+			State:   mrdspb.RuntimeInstanceState_RuntimeState_PENDING,
+			Message: "",
 		},
+	}
+
+	updateResp, err := c.metaInstancesClient.AddRuntimeInstance(ctx, &mrdspb.AddRuntimeInstanceRequest{
+		Metadata:        metaInstanceGetResp.Record.Metadata,
+		RuntimeInstance: runtimeInstance,
 	})
 	if err != nil {
 		activity.GetLogger(ctx).Error("Failed to add Runtime Instance", "error", err)
 		return nil, fmt.Errorf("failed to add Runtime Instance: %w", err)
 	}
 
-	return updateResp, nil
+	return &AllocateRuntimeInstanceResponse{
+		MetaInstance:    updateResp.Record,
+		RuntimeInstance: runtimeInstance,
+	}, nil
 }
