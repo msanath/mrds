@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/msanath/mrds/controlplane/operators/deployment"
+	"github.com/msanath/mrds/controlplane/operators"
 	"github.com/msanath/mrds/controlplane/temporal/activities/runtime"
 	"github.com/msanath/mrds/controlplane/temporal/workers"
 	"github.com/msanath/mrds/gen/api/mrdspb"
@@ -21,7 +21,7 @@ type ControlPlane struct {
 	runtimeActivities runtime.RuntimeActivities
 }
 
-func NewTemporalControlPlane(
+func NewControlPlane(
 	mrdsConn *grpc.ClientConn,
 	temporalClient temporalclient.Client,
 	runtimeActivities runtime.RuntimeActivities,
@@ -42,11 +42,19 @@ func (c *ControlPlane) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start worker: %w", err)
 	}
 
-	deploymentOperator := deployment.NewOperator(c.temporalClient, mrdspb.NewDeploymentPlansClient(c.mrdsConn))
+	deploymentOperator := operators.NewDeploymentOperator(c.temporalClient, mrdspb.NewDeploymentPlansClient(c.mrdsConn))
 	go func() {
 		err := deploymentOperator.RunBlocking(ctx)
 		if err != nil {
 			log.Error("failed to run deployment manager", "error", err)
+		}
+	}()
+
+	operationsOperator := operators.NewOperationsOperator(c.temporalClient, mrdspb.NewMetaInstancesClient(c.mrdsConn))
+	go func() {
+		err := operationsOperator.RunBlocking(ctx)
+		if err != nil {
+			log.Error("failed to run operations manager", "error", err)
 		}
 	}()
 

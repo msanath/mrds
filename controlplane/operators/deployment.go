@@ -1,4 +1,4 @@
-package deployment
+package operators
 
 import (
 	"context"
@@ -13,23 +13,19 @@ import (
 	temporalclient "go.temporal.io/sdk/client"
 )
 
-type Operator interface {
-	RunBlocking(ctx context.Context) error
-}
-
-type operator struct {
+type deploymentOperator struct {
 	tc                    temporalclient.Client
 	deploymentPlansClient mrdspb.DeploymentPlansClient
 }
 
-func NewOperator(tc temporalclient.Client, deploymentPlansClient mrdspb.DeploymentPlansClient) Operator {
-	return &operator{
+func NewDeploymentOperator(tc temporalclient.Client, deploymentPlansClient mrdspb.DeploymentPlansClient) Operator {
+	return &deploymentOperator{
 		tc:                    tc,
 		deploymentPlansClient: deploymentPlansClient,
 	}
 }
 
-func (d *operator) RunBlocking(ctx context.Context) error {
+func (d *deploymentOperator) RunBlocking(ctx context.Context) error {
 	logger := ctxslog.FromContext(ctx)
 
 	ticker, stop := newImmediatelyFiringTicker(10 * time.Second)
@@ -59,26 +55,11 @@ func (d *operator) RunBlocking(ctx context.Context) error {
 					}
 				}
 			}
-
 		}
 	}
 }
 
-func newImmediatelyFiringTicker(d time.Duration) (ticks <-chan time.Time, stop func()) {
-	tick := make(chan time.Time)
-	ticker := time.NewTicker(d)
-
-	go func() {
-		tick <- time.Now()
-		for range ticker.C {
-			tick <- time.Now()
-		}
-	}()
-
-	return tick, ticker.Stop
-}
-
-func (m *operator) executeWorkflows(ctx context.Context, deploymentPlan *mrdspb.DeploymentPlanRecord, deployment *mrdspb.Deployment) error {
+func (m *deploymentOperator) executeWorkflows(ctx context.Context, deploymentPlan *mrdspb.DeploymentPlanRecord, deployment *mrdspb.Deployment) error {
 	log := ctxslog.FromContext(ctx)
 
 	we, err := m.tc.ExecuteWorkflow(ctx,

@@ -77,7 +77,7 @@ func (o serverOptions) Run(ctx context.Context) error {
 		clientset,
 	)
 
-	cp := controlplane.NewTemporalControlPlane(conn, tc, kindRuntime)
+	cp := controlplane.NewControlPlane(conn, tc, kindRuntime)
 
 	cpErrChan := make(chan error)
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

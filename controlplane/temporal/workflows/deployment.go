@@ -200,7 +200,7 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 				continue
 			}
 			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID:            fmt.Sprintf("%s-%s", params.DeploymentPlan.Name, operation.Id),
+				WorkflowID:            fmt.Sprintf("%s-%s", instance.Name, operation.Id),
 				WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
 			}
 			ctx = workflow.WithChildOptions(ctx, cwo)
