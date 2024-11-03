@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/msanath/mrds/pkg/ctl/deploymentplan"
-	"github.com/msanath/mrds/pkg/ctl/metainstance"
-	"github.com/msanath/mrds/pkg/ctl/node"
+	"github.com/msanath/mrds/ctl/deploymentplan"
+	"github.com/msanath/mrds/ctl/metainstance"
+	"github.com/msanath/mrds/ctl/node"
 	"github.com/spf13/cobra"
 )
 

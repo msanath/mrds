@@ -7,7 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/msanath/mrds/pkg/controlplane"
+	"github.com/msanath/mrds/controlplane"
+	temporalclient "go.temporal.io/sdk/client"
 
 	"github.com/msanath/gondolf/pkg/ctxslog"
 	"github.com/spf13/cobra"
@@ -45,9 +46,15 @@ func (o serverOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	cp := controlplane.NewTemporalControlPlane(controlplane.ControlPlaneOptions{
-		MRDSConn: conn,
+	tc, err := temporalclient.Dial(temporalclient.Options{
+		HostPort:  "localhost:7233",
+		Namespace: "mrds",
+		Logger:    log,
 	})
+	if err != nil {
+		return err
+	}
+	cp := controlplane.NewTemporalControlPlane(conn, tc)
 
 	cpErrChan := make(chan error)
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

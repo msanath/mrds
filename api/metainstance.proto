@@ -19,22 +19,16 @@ enum MetaInstanceState {
 message MetaInstance {
     // Metadata is the metadata that identifies the MetaInstance.
     core.Metadata metadata = 1;
-
     // Name is the name of the MetaInstance.
     string name = 2;
-
     // Status represents the current status of the MetaInstance.
     MetaInstanceStatus status = 3;
-
     // DeploymentPlanID is the ID of the Deployment Plan to which the MetaInstance belongs.
     string deployment_plan_id = 4;
-
     // DeploymentID is the ID of the Deployment which this MetaInstance is responsible for.
     string deployment_id = 5;
-
     // RuntimeInstances is a list of runtime instances currently running on the MetaInstance.
     repeated RuntimeInstance runtime_instances = 6;
-
     // Operations is a list of operations that are currently pending on the MetaInstance.
     repeated Operation operations = 7;
 }
@@ -43,7 +37,6 @@ message MetaInstance {
 message MetaInstanceStatus {
     // State is the discrete condition of the resource.
     MetaInstanceState state = 1;
-
     // Message is a human-readable description of the resource's state.
     string message = 2;
 }
@@ -52,13 +45,10 @@ message MetaInstanceStatus {
 message RuntimeInstance {
     // ID is the unique identifier of the RuntimeInstance.
     string id = 1;
-
     // NodeID is the ID of the Node where the RuntimeInstance is running.
     string node_id = 2;
-
     // IsActive indicates if the RuntimeInstance is currently active.
     bool is_active = 3;
-
     // Status represents the current status of the RuntimeInstance.
     RuntimeInstanceStatus status = 4;
 }
@@ -67,15 +57,18 @@ message RuntimeInstance {
 enum RuntimeInstanceState {
     RuntimeState_UNKNOWN = 0;
     RuntimeState_PENDING = 1;
-    RuntimeState_RUNNING = 2;
-    RuntimeState_TERMINATED = 3;
+    RuntimeState_STARTING = 2;
+    RuntimeState_RUNNING = 3;
+    RuuntimeState_UPDATING = 4;
+    RuntimeState_TERMINATING = 5;
+    RuntimeState_TERMINATED = 6;
+    RuntimeState_FAILED = 7;
 }
 
 // Message representing the Status of a RuntimeInstance
 message RuntimeInstanceStatus {
     // State is the state of the RuntimeInstance.
     RuntimeInstanceState state = 1;
-
     // Message is a human-readable description of the RuntimeInstance's state.
     string message = 2;
 }
@@ -84,32 +77,40 @@ message RuntimeInstanceStatus {
 message Operation {
     // ID is the unique identifier of the Operation.
     string id = 1;
-
     // Type is the type of the Operation.
-    string type = 2;
-
+    OperationType type = 2;
     // IntentID is the ID of the intent that triggered this Operation.
     string intent_id = 3;
-
     // Status represents the current status of the Operation.
     OperationStatus status = 4;
 }
 
+enum OperationType {
+    OperationType_UNKNOWN = 0;
+    OperationType_CREATE = 1;
+    OperationType_UPDATE = 2;
+    OperationType_DELETE = 3;
+    OperationType_STOP = 4;
+    OperationType_RESTART = 5;
+    OperationType_RELOCATE = 6;
+}
+
+
 // Enum to represent the OperationState
 enum OperationState {
     OperationState_UNKNOWN = 0;
-    OperationState_PREPARING = 1;
-    OperationState_PENDING_APPROVAL = 2;
-    OperationState_APPROVED = 3;
-    OperationState_SUCCEEDED = 4;
-    OperationState_FAILED = 5;
+    OperationState_PENDING = 1;
+    OperationState_PREPARING = 2;
+    OperationState_PENDING_APPROVAL = 3;
+    OperationState_APPROVED = 4;
+    OperationState_SUCCEEDED = 5;
+    OperationState_FAILED = 6;
 }
 
 // Message representing the Status of an Operation
 message OperationStatus {
     // State is the state of the Operation.
     OperationState state = 1;
-
     // Message is a human-readable description of the Operation's state.
     string message = 2;
 }
