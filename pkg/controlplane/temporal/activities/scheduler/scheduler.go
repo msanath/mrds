@@ -75,7 +75,7 @@ func (c *SchedulerActivities) AllocateRuntimeInstance(ctx context.Context, req *
 	// Find a node that can accomodate the requested resources and does not have
 	// existing instances of the same payload.
 	nodeListResp, err := c.nodesClient.List(ctx, &mrdspb.ListNodeRequest{
-		// StateIn:            []mrdspb.NodeState{mrdspb.NodeState_NodeState_ALLOCATED},
+		StateIn:            []mrdspb.NodeState{mrdspb.NodeState_NodeState_ALLOCATED},
 		RemainingCoresGte:  requestedCores,
 		RemainingMemoryGte: requestedMemory,
 		PayloadNameNotIn:   payloadNames,

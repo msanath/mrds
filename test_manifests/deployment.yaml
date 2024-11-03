@@ -3,5 +3,5 @@ deployment_id: "123"
 payload_coordinates:
   - payload_name: "nginx-payload"
     coordinates:
-      dockerImage: "nginx:latest"
+      image: "nginx:latest"
 instance_count: 1

@@ -1,6 +1,6 @@
 nodes:
-  - name: "test-node-1"
-    updateDomain: "test-domain-1"
+  - name: "kind-worker"
+    updateDomain: "update-domain-1"
     totalResources:
       cores: 64
       memory: 512
@@ -11,28 +11,66 @@ nodes:
       - "capability-1"
       - "capability-2"
     localVolumes:
-      - mountPath: "/var/lib/docker"
+      - mountPath: "/mnt/u001"
         storageClass: "SSD"
         storageCapacity: 1024
-      - mountPath: "/mnt/data"
+      - mountPath: "/mnt/u002"
         storageClass: "HDD"
         storageCapacity: 2048
 
-  - name: "test-node-2"
-    updateDomain: "test-domain-2"
+  - name: "kind-worker2"
+    updateDomain: "update-domain-1"
     totalResources:
-      cores: 32
-      memory: 256
+      cores: 64
+      memory: 512
     systemReservedResources:
-      cores: 2
-      memory: 16
+      cores: 4
+      memory: 32
     capabilityIDs:
-      - "capability-3"
-      - "capability-4"
+      - "capability-1"
+      - "capability-2"
     localVolumes:
-      - mountPath: "/var/lib/logs"
-        storageClass: "HDD"
-        storageCapacity: 500
-      - mountPath: "/mnt/backup"
+      - mountPath: "/mnt/u001"
         storageClass: "SSD"
-        storageCapacity: 1500
+        storageCapacity: 1024
+      - mountPath: "/mnt/u002"
+        storageClass: "HDD"
+        storageCapacity: 2048
+
+  - name: "kind-worker3"
+    updateDomain: "update-domain-2"
+    totalResources:
+      cores: 64
+      memory: 512
+    systemReservedResources:
+      cores: 4
+      memory: 32
+    capabilityIDs:
+      - "capability-1"
+      - "capability-2"
+    localVolumes:
+      - mountPath: "/mnt/u001"
+        storageClass: "SSD"
+        storageCapacity: 1024
+      - mountPath: "/mnt/u002"
+        storageClass: "HDD"
+        storageCapacity: 2048
+
+  - name: "kind-worker4"
+    updateDomain: "update-domain-2"
+    totalResources:
+      cores: 64
+      memory: 512
+    systemReservedResources:
+      cores: 4
+      memory: 32
+    capabilityIDs:
+      - "capability-1"
+      - "capability-2"
+    localVolumes:
+      - mountPath: "/mnt/u001"
+        storageClass: "SSD"
+        storageCapacity: 1024
+      - mountPath: "/mnt/u002"
+        storageClass: "HDD"
+        storageCapacity: 2048

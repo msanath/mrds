@@ -4,10 +4,14 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/msanath/mrds/gen/api/mrdspb"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type RuntimeActivity interface {
@@ -24,18 +28,22 @@ type KindRuntime struct {
 	metaInstancesClient  mrdspb.MetaInstancesClient
 	deploymentPlanClient mrdspb.DeploymentPlansClient
 	nodesClient          mrdspb.NodesClient
+
+	k8sClientSet *kubernetes.Clientset
 }
 
 func NewKindRuntime(
 	metaInstancesClient mrdspb.MetaInstancesClient,
 	deploymentPlanClient mrdspb.DeploymentPlansClient,
 	nodesClient mrdspb.NodesClient,
+	k8sClientSet *kubernetes.Clientset,
 	registry worker.Registry,
 ) RuntimeActivity {
 	a := &KindRuntime{
 		metaInstancesClient:  metaInstancesClient,
 		deploymentPlanClient: deploymentPlanClient,
 		nodesClient:          nodesClient,
+		k8sClientSet:         k8sClientSet,
 	}
 
 	registry.RegisterActivity(a.StartInstance)
@@ -52,6 +60,11 @@ func (k *KindRuntime) StartInstance(ctx context.Context, req *RuntimeActivityPar
 		return nil, err
 	}
 
+	err = k.buildAndCreatePod(ctx, runtimeDetails)
+	if err != nil {
+		return nil, err
+	}
+
 	// Update the runtime state to running.
 	updateResp, err := k.metaInstancesClient.UpdateRuntimeStatus(ctx, &mrdspb.UpdateRuntimeStatusRequest{
 		Metadata:          runtimeDetails.MetaInstance.Metadata,
@@ -62,6 +75,81 @@ func (k *KindRuntime) StartInstance(ctx context.Context, req *RuntimeActivityPar
 	})
 
 	return updateResp, err
+}
+
+func (k *KindRuntime) buildAndCreatePod(ctx context.Context, runtimeDetails *runtimeDetails) error {
+	activity.GetLogger(ctx).Info("Creating Pod")
+
+	var deployment *mrdspb.Deployment
+	for _, d := range runtimeDetails.DeploymentPlan.Deployments {
+		if d.Id == runtimeDetails.MetaInstance.DeploymentId {
+			deployment = d
+			break
+		}
+	}
+	if deployment == nil {
+		return fmt.Errorf("deployment with ID %s not found", runtimeDetails.MetaInstance.DeploymentId)
+	}
+
+	// build containers for the payloard
+	containers := make([]corev1.Container, 0)
+	for _, app := range deployment.PayloadCoordinates {
+		containers = append(containers, corev1.Container{
+			Name:  app.PayloadName,
+			Image: app.Coordinates["image"],
+		})
+	}
+
+	// Define the pod
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: runtimeDetails.RuntimeInstance.Id,
+		},
+		Spec: corev1.PodSpec{
+			Containers: containers,
+			NodeSelector: map[string]string{
+				"kubernetes.io/hostname": runtimeDetails.Node.Name,
+			},
+		},
+	}
+
+	// Create the pod in the default namespace
+	pod, err := k.k8sClientSet.CoreV1().Pods("default").Create(context.TODO(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create pod: %v", err)
+	}
+	activity.GetLogger(ctx).Info("Pod created", "pod", pod)
+
+	// Check pod status every 5 seconds
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(2 * time.Minute) // Set a timeout period
+
+	podName := pod.Name
+	namespace := "default"
+
+	for {
+		select {
+		case <-timeout:
+			activity.GetLogger(ctx).Error("Timed out waiting for pod to reach 'Running' state", "pod", pod)
+			return fmt.Errorf("timed out waiting for pod %s to reach 'Running' state", podName)
+		case <-ticker.C:
+			pod, err := k.k8sClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			if err != nil {
+				activity.GetLogger(ctx).Error("Failed to get pod", "error", err)
+				continue
+			}
+
+			// Check if the pod is in the 'Running' phase
+			if pod.Status.Phase == corev1.PodRunning {
+				activity.GetLogger(ctx).Info("Pod is running", "pod", pod)
+				return nil
+			} else {
+				activity.GetLogger(ctx).Info("Pod is not running yet", "pod", pod)
+			}
+		}
+	}
 }
 
 func (k *KindRuntime) StopInstance(ctx context.Context, req *RuntimeActivityParams) (*mrdspb.UpdateMetaInstanceResponse, error) {

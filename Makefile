@@ -46,9 +46,21 @@ test:
 
 localbuild: clean build generate test
 
-.PHONY: prep
-prep:
+.PHONY: kind-prep
+kind-prep: ## Create a kind cluster and add the nodes to MRDS
+	kind create cluster --config test_manifests/kind_config.yaml && \
 	./bin/mrds-ctl node create -m "test_manifests/node.yaml" && \
+	./bin/mrds-ctl node add-to-cluster kind-worker --cluster-id kind && \
+	./bin/mrds-ctl node add-to-cluster kind-worker2 --cluster-id kind && \
+	./bin/mrds-ctl node add-to-cluster kind-worker3 --cluster-id kind && \
+	./bin/mrds-ctl node add-to-cluster kind-worker4 --cluster-id kind
+
+.PHONY: kind-delete
+kind-delete: ## Delete the kind cluster
+	kind delete cluster
+
+.PHONY: add-deployment
+add-deployment: ## Add a deployment to the cluster
 	./bin/mrds-ctl deployment create -m test_manifests/deploymentplan.yaml && \
 	./bin/mrds-ctl deployment add-deployment -m test_manifests/deployment.yaml
 

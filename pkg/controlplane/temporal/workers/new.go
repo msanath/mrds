@@ -8,6 +8,8 @@ import (
 	"github.com/msanath/mrds/pkg/controlplane/temporal/activities/runtime"
 	"github.com/msanath/mrds/pkg/controlplane/temporal/activities/scheduler"
 	"github.com/msanath/mrds/pkg/controlplane/temporal/workflows"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -20,6 +22,18 @@ const (
 
 func NewWorker(ctx context.Context, mrdsConn *grpc.ClientConn, client client.Client) error {
 	w := worker.New(client, DeploymentTaskQueue, worker.Options{})
+
+	kubeconfig := clientcmd.RecommendedHomeFile
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return err
+	}
+
+	// Create a clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
 	// Initialize and Register all the activities
 	deploymentPlanActivities := mrds.NewDeploymentPlanActivities(mrdspb.NewDeploymentPlansClient(mrdsConn), w)
@@ -34,6 +48,7 @@ func NewWorker(ctx context.Context, mrdsConn *grpc.ClientConn, client client.Cli
 		mrdspb.NewMetaInstancesClient(mrdsConn),
 		mrdspb.NewDeploymentPlansClient(mrdsConn),
 		mrdspb.NewNodesClient(mrdsConn),
+		clientset,
 		w,
 	)
 
