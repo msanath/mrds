@@ -32,6 +32,7 @@ service MetaInstances {
 
     rpc AddRuntimeInstance(AddRuntimeInstanceRequest) returns (UpdateMetaInstanceResponse);
     rpc UpdateRuntimeStatus(UpdateRuntimeStatusRequest) returns (UpdateMetaInstanceResponse);
+    rpc UpdateRuntimeActiveState(UpdateRuntimeActiveStateRequest) returns (UpdateMetaInstanceResponse);
     rpc RemoveRuntimeInstance(RemoveRuntimeInstanceRequest) returns (UpdateMetaInstanceResponse);
 
     rpc AddOperation(AddOperationRequest) returns (UpdateMetaInstanceResponse);
@@ -122,6 +123,13 @@ message UpdateRuntimeStatusRequest {
     core.Metadata metadata = 1;
     string runtime_instance_id = 2;
     RuntimeInstanceStatus status = 3;
+}
+
+// Request to update the active state of a RuntimeInstance.
+message UpdateRuntimeActiveStateRequest {
+    core.Metadata metadata = 1;
+    string runtime_instance_id = 2;
+    bool is_active = 3;
 }
 
 // Request to remove a RuntimeInstance from a MetaInstance.

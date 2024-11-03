@@ -31,6 +31,7 @@ type Repository interface {
 
 	InsertRuntimeInstance(ctx context.Context, metadata core.Metadata, instance RuntimeInstance) error
 	UpdateRuntimeInstanceStatus(ctx context.Context, metadata core.Metadata, instanceID string, status RuntimeInstanceStatus) error
+	UpdateRuntimeActiveState(ctx context.Context, metadata core.Metadata, instanceID string, active bool) error
 	DeleteRuntimeInstance(ctx context.Context, metadata core.Metadata, instanceID string) error
 }
 
@@ -251,6 +252,23 @@ func (l *ledger) AddRuntimeInstance(ctx context.Context, req *AddRuntimeInstance
 // UpdateRuntimeStatus updates the state and message of a runtime instance in the MetaInstance.
 func (l *ledger) UpdateRuntimeStatus(ctx context.Context, req *UpdateRuntimeStatusRequest) (*UpdateResponse, error) {
 	err := l.metaInstanceRepo.UpdateRuntimeInstanceStatus(ctx, req.Metadata, req.RuntimeInstanceID, req.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := l.metaInstanceRepo.GetByID(ctx, req.Metadata.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateResponse{
+		Record: record,
+	}, nil
+}
+
+// UpdateRuntimeActiveState updates the active state of a runtime instance in the MetaInstance.
+func (l *ledger) UpdateRuntimeActiveState(ctx context.Context, req *UpdateRuntimeActiveStateRequest) (*UpdateResponse, error) {
+	err := l.metaInstanceRepo.UpdateRuntimeActiveState(ctx, req.Metadata, req.RuntimeInstanceID, req.IsActive)
 	if err != nil {
 		return nil, err
 	}

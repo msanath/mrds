@@ -19,19 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MetaInstances_Create_FullMethodName                = "/proto.mrds.ledger.metainstance.MetaInstances/Create"
-	MetaInstances_GetByID_FullMethodName               = "/proto.mrds.ledger.metainstance.MetaInstances/GetByID"
-	MetaInstances_GetByName_FullMethodName             = "/proto.mrds.ledger.metainstance.MetaInstances/GetByName"
-	MetaInstances_UpdateStatus_FullMethodName          = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateStatus"
-	MetaInstances_UpdateDeploymentID_FullMethodName    = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateDeploymentID"
-	MetaInstances_List_FullMethodName                  = "/proto.mrds.ledger.metainstance.MetaInstances/List"
-	MetaInstances_Delete_FullMethodName                = "/proto.mrds.ledger.metainstance.MetaInstances/Delete"
-	MetaInstances_AddRuntimeInstance_FullMethodName    = "/proto.mrds.ledger.metainstance.MetaInstances/AddRuntimeInstance"
-	MetaInstances_UpdateRuntimeStatus_FullMethodName   = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateRuntimeStatus"
-	MetaInstances_RemoveRuntimeInstance_FullMethodName = "/proto.mrds.ledger.metainstance.MetaInstances/RemoveRuntimeInstance"
-	MetaInstances_AddOperation_FullMethodName          = "/proto.mrds.ledger.metainstance.MetaInstances/AddOperation"
-	MetaInstances_UpdateOperationStatus_FullMethodName = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateOperationStatus"
-	MetaInstances_RemoveOperation_FullMethodName       = "/proto.mrds.ledger.metainstance.MetaInstances/RemoveOperation"
+	MetaInstances_Create_FullMethodName                   = "/proto.mrds.ledger.metainstance.MetaInstances/Create"
+	MetaInstances_GetByID_FullMethodName                  = "/proto.mrds.ledger.metainstance.MetaInstances/GetByID"
+	MetaInstances_GetByName_FullMethodName                = "/proto.mrds.ledger.metainstance.MetaInstances/GetByName"
+	MetaInstances_UpdateStatus_FullMethodName             = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateStatus"
+	MetaInstances_UpdateDeploymentID_FullMethodName       = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateDeploymentID"
+	MetaInstances_List_FullMethodName                     = "/proto.mrds.ledger.metainstance.MetaInstances/List"
+	MetaInstances_Delete_FullMethodName                   = "/proto.mrds.ledger.metainstance.MetaInstances/Delete"
+	MetaInstances_AddRuntimeInstance_FullMethodName       = "/proto.mrds.ledger.metainstance.MetaInstances/AddRuntimeInstance"
+	MetaInstances_UpdateRuntimeStatus_FullMethodName      = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateRuntimeStatus"
+	MetaInstances_UpdateRuntimeActiveState_FullMethodName = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateRuntimeActiveState"
+	MetaInstances_RemoveRuntimeInstance_FullMethodName    = "/proto.mrds.ledger.metainstance.MetaInstances/RemoveRuntimeInstance"
+	MetaInstances_AddOperation_FullMethodName             = "/proto.mrds.ledger.metainstance.MetaInstances/AddOperation"
+	MetaInstances_UpdateOperationStatus_FullMethodName    = "/proto.mrds.ledger.metainstance.MetaInstances/UpdateOperationStatus"
+	MetaInstances_RemoveOperation_FullMethodName          = "/proto.mrds.ledger.metainstance.MetaInstances/RemoveOperation"
 )
 
 // MetaInstancesClient is the client API for MetaInstances service.
@@ -56,6 +57,7 @@ type MetaInstancesClient interface {
 	Delete(ctx context.Context, in *DeleteMetaInstanceRequest, opts ...grpc.CallOption) (*DeleteMetaInstanceResponse, error)
 	AddRuntimeInstance(ctx context.Context, in *AddRuntimeInstanceRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
 	UpdateRuntimeStatus(ctx context.Context, in *UpdateRuntimeStatusRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
+	UpdateRuntimeActiveState(ctx context.Context, in *UpdateRuntimeActiveStateRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
 	RemoveRuntimeInstance(ctx context.Context, in *RemoveRuntimeInstanceRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
 	AddOperation(ctx context.Context, in *AddOperationRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
 	UpdateOperationStatus(ctx context.Context, in *UpdateOperationStatusRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error)
@@ -160,6 +162,16 @@ func (c *metaInstancesClient) UpdateRuntimeStatus(ctx context.Context, in *Updat
 	return out, nil
 }
 
+func (c *metaInstancesClient) UpdateRuntimeActiveState(ctx context.Context, in *UpdateRuntimeActiveStateRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateMetaInstanceResponse)
+	err := c.cc.Invoke(ctx, MetaInstances_UpdateRuntimeActiveState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *metaInstancesClient) RemoveRuntimeInstance(ctx context.Context, in *RemoveRuntimeInstanceRequest, opts ...grpc.CallOption) (*UpdateMetaInstanceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateMetaInstanceResponse)
@@ -222,6 +234,7 @@ type MetaInstancesServer interface {
 	Delete(context.Context, *DeleteMetaInstanceRequest) (*DeleteMetaInstanceResponse, error)
 	AddRuntimeInstance(context.Context, *AddRuntimeInstanceRequest) (*UpdateMetaInstanceResponse, error)
 	UpdateRuntimeStatus(context.Context, *UpdateRuntimeStatusRequest) (*UpdateMetaInstanceResponse, error)
+	UpdateRuntimeActiveState(context.Context, *UpdateRuntimeActiveStateRequest) (*UpdateMetaInstanceResponse, error)
 	RemoveRuntimeInstance(context.Context, *RemoveRuntimeInstanceRequest) (*UpdateMetaInstanceResponse, error)
 	AddOperation(context.Context, *AddOperationRequest) (*UpdateMetaInstanceResponse, error)
 	UpdateOperationStatus(context.Context, *UpdateOperationStatusRequest) (*UpdateMetaInstanceResponse, error)
@@ -262,6 +275,9 @@ func (UnimplementedMetaInstancesServer) AddRuntimeInstance(context.Context, *Add
 }
 func (UnimplementedMetaInstancesServer) UpdateRuntimeStatus(context.Context, *UpdateRuntimeStatusRequest) (*UpdateMetaInstanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateRuntimeStatus not implemented")
+}
+func (UnimplementedMetaInstancesServer) UpdateRuntimeActiveState(context.Context, *UpdateRuntimeActiveStateRequest) (*UpdateMetaInstanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRuntimeActiveState not implemented")
 }
 func (UnimplementedMetaInstancesServer) RemoveRuntimeInstance(context.Context, *RemoveRuntimeInstanceRequest) (*UpdateMetaInstanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveRuntimeInstance not implemented")
@@ -458,6 +474,24 @@ func _MetaInstances_UpdateRuntimeStatus_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetaInstances_UpdateRuntimeActiveState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRuntimeActiveStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetaInstancesServer).UpdateRuntimeActiveState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MetaInstances_UpdateRuntimeActiveState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetaInstancesServer).UpdateRuntimeActiveState(ctx, req.(*UpdateRuntimeActiveStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MetaInstances_RemoveRuntimeInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RemoveRuntimeInstanceRequest)
 	if err := dec(in); err != nil {
@@ -572,6 +606,10 @@ var MetaInstances_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateRuntimeStatus",
 			Handler:    _MetaInstances_UpdateRuntimeStatus_Handler,
+		},
+		{
+			MethodName: "UpdateRuntimeActiveState",
+			Handler:    _MetaInstances_UpdateRuntimeActiveState_Handler,
 		},
 		{
 			MethodName: "RemoveRuntimeInstance",

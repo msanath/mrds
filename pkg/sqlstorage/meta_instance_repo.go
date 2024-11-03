@@ -470,6 +470,37 @@ func (s *metaInstanceStorage) UpdateRuntimeInstanceStatus(ctx context.Context, m
 	return nil
 }
 
+func (s *metaInstanceStorage) UpdateRuntimeActiveState(ctx context.Context, metadata core.Metadata, instanceID string, active bool) error {
+	tx, err := s.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return errHandler(err)
+	}
+	defer tx.Rollback()
+
+	execer := tx
+
+	isActive := active
+	updateFields := tables.MetaInstanceRuntimeInstanceTableUpdateFields{
+		IsActive: &isActive,
+	}
+	err = s.metaInstanceRuntimeInstanceTable.Update(ctx, execer, instanceID, metadata.ID, updateFields)
+	if err != nil {
+		return errHandler(err)
+	}
+
+	// update the meta instance state version
+	err = s.metaInstanceTable.Update(ctx, execer, metadata.ID, metadata.Version, tables.MetaInstanceTableUpdateFields{})
+	if err != nil {
+		return errHandler(err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errHandler(err)
+	}
+	return nil
+}
+
 func (s *metaInstanceStorage) DeleteRuntimeInstance(ctx context.Context, metadata core.Metadata, runtimeInstanceID string) error {
 	// Get the associated metaInstance Record.
 	// Now get the sum of all the cores and memory for all applications in the deployment plan.

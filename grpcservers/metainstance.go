@@ -229,6 +229,21 @@ func (s *MetaInstanceService) UpdateRuntimeStatus(ctx context.Context, req *mrds
 	return &mrdspb.UpdateMetaInstanceResponse{Record: s.ledgerRecordToProto(updateRuntimeStatusResponse.Record)}, nil
 }
 
+func (s *MetaInstanceService) UpdateRuntimeActiveState(ctx context.Context, req *mrdspb.UpdateRuntimeActiveStateRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
+	updateRuntimeActiveStateResponse, err := s.ledger.UpdateRuntimeActiveState(ctx, &metainstance.UpdateRuntimeActiveStateRequest{
+		Metadata: core.Metadata{
+			ID:      req.Metadata.Id,
+			Version: req.Metadata.Version,
+		},
+		RuntimeInstanceID: req.RuntimeInstanceId,
+		IsActive:          req.IsActive,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &mrdspb.UpdateMetaInstanceResponse{Record: s.ledgerRecordToProto(updateRuntimeActiveStateResponse.Record)}, nil
+}
+
 // RemoveRuntimeInstance removes a runtime instance from a MetaInstance
 func (s *MetaInstanceService) RemoveRuntimeInstance(ctx context.Context, req *mrdspb.RemoveRuntimeInstanceRequest) (*mrdspb.UpdateMetaInstanceResponse, error) {
 	removeRuntimeResponse, err := s.ledger.RemoveRuntimeInstance(ctx, &metainstance.RemoveRuntimeInstanceRequest{

@@ -96,6 +96,11 @@ func (s *MetaInstanceRuntimeInstanceTable) Update(
 		params["message"] = *updateFields.Message
 	}
 
+	if updateFields.IsActive != nil {
+		updates = append(updates, "is_active = :is_active")
+		params["is_active"] = *updateFields.IsActive
+	}
+
 	query += strings.Join(updates, ", ") + " WHERE id = :id AND meta_instance_id = :meta_instance_id"
 	query, args, err := sqlx.Named(query, params)
 	if err != nil {

@@ -129,8 +129,9 @@ func TestMetaInstanceServer(t *testing.T) {
 	updateResp, err = client.AddRuntimeInstance(ctx, &mrdspb.AddRuntimeInstanceRequest{
 		Metadata: updateResp.Record.Metadata,
 		RuntimeInstance: &mrdspb.RuntimeInstance{
-			Id:     uuid.New().String(),
-			NodeId: nodeResp.Record.Metadata.Id,
+			Id:       uuid.New().String(),
+			NodeId:   nodeResp.Record.Metadata.Id,
+			IsActive: true,
 			Status: &mrdspb.RuntimeInstanceStatus{
 				State:   mrdspb.RuntimeInstanceState_RuntimeState_RUNNING,
 				Message: "test-message",
@@ -141,6 +142,7 @@ func TestMetaInstanceServer(t *testing.T) {
 	require.NotNil(t, updateResp)
 	require.Equal(t, "test-metaInstance", updateResp.Record.Name)
 	require.Len(t, updateResp.Record.RuntimeInstances, 1)
+	require.True(t, updateResp.Record.RuntimeInstances[0].IsActive)
 
 	// Update runtime status
 	updateResp, err = client.UpdateRuntimeStatus(ctx, &mrdspb.UpdateRuntimeStatusRequest{
@@ -155,6 +157,17 @@ func TestMetaInstanceServer(t *testing.T) {
 	require.NotNil(t, updateResp)
 	require.Equal(t, "test-metaInstance", updateResp.Record.Name)
 	require.Equal(t, mrdspb.RuntimeInstanceState_RuntimeState_TERMINATED, updateResp.Record.RuntimeInstances[0].Status.State)
+
+	// update runtime active status
+	updateResp, err = client.UpdateRuntimeActiveState(ctx, &mrdspb.UpdateRuntimeActiveStateRequest{
+		Metadata:          updateResp.Record.Metadata,
+		RuntimeInstanceId: updateResp.Record.RuntimeInstances[0].Id,
+		IsActive:          false,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updateResp)
+	require.Equal(t, "test-metaInstance", updateResp.Record.Name)
+	require.False(t, updateResp.Record.RuntimeInstances[0].IsActive)
 
 	// Remove runtime instance
 	updateResp, err = client.RemoveRuntimeInstance(ctx, &mrdspb.RemoveRuntimeInstanceRequest{

@@ -113,6 +113,7 @@ type Ledger interface {
 
 	AddRuntimeInstance(context.Context, *AddRuntimeInstanceRequest) (*UpdateResponse, error)
 	UpdateRuntimeStatus(context.Context, *UpdateRuntimeStatusRequest) (*UpdateResponse, error)
+	UpdateRuntimeActiveState(context.Context, *UpdateRuntimeActiveStateRequest) (*UpdateResponse, error)
 	RemoveRuntimeInstance(context.Context, *RemoveRuntimeInstanceRequest) (*UpdateResponse, error)
 
 	AddOperation(context.Context, *AddOperationRequest) (*UpdateResponse, error)
@@ -193,6 +194,12 @@ type UpdateRuntimeStatusRequest struct {
 	Metadata          core.Metadata
 	RuntimeInstanceID string
 	Status            RuntimeInstanceStatus
+}
+
+type UpdateRuntimeActiveStateRequest struct {
+	Metadata          core.Metadata
+	RuntimeInstanceID string
+	IsActive          bool
 }
 
 type RemoveRuntimeInstanceRequest struct {

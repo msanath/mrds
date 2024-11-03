@@ -267,6 +267,18 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		testRecord = updatedRecord
 	})
 
+	t.Run("Update Runtime Active State", func(t *testing.T) {
+		err = repo.UpdateRuntimeActiveState(ctx, testRecord.Metadata, "ri1", false)
+		require.NoError(t, err)
+
+		updatedRecord, err := repo.GetByName(ctx, testRecord.Name)
+		require.NoError(t, err)
+		require.Len(t, updatedRecord.RuntimeInstances, 1)
+		require.False(t, updatedRecord.RuntimeInstances[0].IsActive)
+		require.Equal(t, testRecord.Metadata.Version+1, updatedRecord.Metadata.Version)
+		testRecord = updatedRecord
+	})
+
 	t.Run("Delete Runtime Instance Success", func(t *testing.T) {
 		err = repo.DeleteRuntimeInstance(ctx, testRecord.Metadata, "ri1")
 		require.NoError(t, err)
