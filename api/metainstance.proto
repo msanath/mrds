@@ -10,9 +10,8 @@ option go_package = "/api/mrdspb";
 // Enum to represent the MetaInstanceState
 enum MetaInstanceState {
     MetaInstanceState_UNKNOWN = 0;
-    MetaInstanceState_PENDING_ALLOCATION = 1;
-    MetaInstanceState_RUNNING = 2;
-    MetaInstanceState_TERMINATED = 3;
+    MetaInstanceState_ACTIVE = 1;
+    MetaInstanceState_MARKED_FOR_DELETION = 2;
 }
 
 // Message representing the MetaInstance

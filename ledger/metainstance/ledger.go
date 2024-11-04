@@ -71,7 +71,7 @@ func (l *ledger) Create(ctx context.Context, req *CreateRequest) (*CreateRespons
 		},
 		Name: req.Name,
 		Status: MetaInstanceStatus{
-			State:   MetaInstanceStatePendingAllocation,
+			State:   MetaInstanceStateActive,
 			Message: "",
 		},
 		DeploymentPlanID: req.DeploymentPlanID,
@@ -131,9 +131,7 @@ func (l *ledger) GetByName(ctx context.Context, name string) (*GetResponse, erro
 }
 
 var validStateTransitions = map[MetaInstanceState][]MetaInstanceState{
-	MetaInstanceStatePendingAllocation: {MetaInstanceStateRunning, MetaInstanceStateTerminated},
-	MetaInstanceStateRunning:           {MetaInstanceStateTerminated},
-	MetaInstanceStateTerminated:        {MetaInstanceStateRunning},
+	MetaInstanceStateActive: {MetaInstanceStateMarkedForDeletion},
 }
 
 // UpdateStatus updates the state and message of an existing MetaInstance.

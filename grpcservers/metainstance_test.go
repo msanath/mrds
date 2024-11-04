@@ -116,14 +116,14 @@ func TestMetaInstanceServer(t *testing.T) {
 	updateResp, err := client.UpdateStatus(ctx, &mrdspb.UpdateMetaInstanceStatusRequest{
 		Metadata: resp.Record.Metadata,
 		Status: &mrdspb.MetaInstanceStatus{
-			State:   mrdspb.MetaInstanceState_MetaInstanceState_RUNNING,
+			State:   mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION,
 			Message: "test-message",
 		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, updateResp)
 	require.Equal(t, "test-metaInstance", updateResp.Record.Name)
-	require.Equal(t, mrdspb.MetaInstanceState_MetaInstanceState_RUNNING, updateResp.Record.Status.State)
+	require.Equal(t, mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION, updateResp.Record.Status.State)
 
 	// Add runtime instance
 	updateResp, err = client.AddRuntimeInstance(ctx, &mrdspb.AddRuntimeInstanceRequest{
@@ -223,7 +223,7 @@ func TestMetaInstanceServer(t *testing.T) {
 
 	// list
 	listResp, err := client.List(ctx, &mrdspb.ListMetaInstanceRequest{
-		StateIn: []mrdspb.MetaInstanceState{mrdspb.MetaInstanceState_MetaInstanceState_RUNNING},
+		StateIn: []mrdspb.MetaInstanceState{mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, listResp)

@@ -24,9 +24,8 @@ type MetaInstanceState string
 
 const (
 	MetaInstanceStateUnknown           MetaInstanceState = "MetaInstanceState_UNKNOWN"
-	MetaInstanceStatePendingAllocation MetaInstanceState = "MetaInstanceState_PENDING_ALLOCATION"
-	MetaInstanceStateRunning           MetaInstanceState = "MetaInstanceState_RUNNING"
-	MetaInstanceStateTerminated        MetaInstanceState = "MetaInstanceState_TERMINATED"
+	MetaInstanceStateActive            MetaInstanceState = "MetaInstanceState_ACTIVE"
+	MetaInstanceStateMarkedForDeletion MetaInstanceState = "MetaInstanceState_MARKED_FOR_DELETION"
 )
 
 type MetaInstanceStatus struct {

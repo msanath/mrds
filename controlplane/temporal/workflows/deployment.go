@@ -75,11 +75,12 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 	}
 	metaInstances := listMetaInstancesResponse.Records
 
-	remainingInstancesToCreate := int(params.Deployment.InstanceCount) - len(metaInstances)
+	numInstancesToCreate := int(params.Deployment.InstanceCount) - len(metaInstances)
+	numInstancesToDelete := len(metaInstances) - int(params.Deployment.InstanceCount)
 
-	if remainingInstancesToCreate > 0 {
+	if numInstancesToCreate > 0 {
 		var futures []workflow.Future
-		for i := 0; i < remainingInstancesToCreate; i++ {
+		for i := 0; i < numInstancesToCreate; i++ {
 			f := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.CreateMetaInstance, &mrdspb.CreateMetaInstanceRequest{
 				Name:             fmt.Sprintf("%s-%s", params.DeploymentPlan.ServiceName, shortUUID()),
 				DeploymentPlanId: params.DeploymentPlan.Metadata.Id,
@@ -95,6 +96,26 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 				return err
 			}
 			workflow.GetLogger(ctx).Info("Activity completed", "InstanceName", createMetaInstanceResponse.Record.Name)
+		}
+	}
+
+	if numInstancesToDelete > 0 {
+		for _, instance := range metaInstances {
+			if numInstancesToDelete == 0 {
+				break
+			}
+			var updateResponse mrds.UpdateMetaInstanceStatusResponse
+			err := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.UpdateMetaInstanceStatus, &mrds.UpdateMetaInstanceStatusRequest{
+				MetaInstanceID: instance.Metadata.Id,
+				Status: &mrdspb.MetaInstanceStatus{
+					State:   mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION,
+					Message: "Marked for deletion",
+				},
+			}).Get(ctx, &updateResponse)
+			if err != nil {
+				return err
+			}
+			numInstancesToDelete--
 		}
 	}
 
@@ -131,7 +152,31 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 			continue
 		}
 
-		if len(instance.RuntimeInstances) == 0 {
+		if instance.Status.State == mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION {
+			operationID := fmt.Sprintf("DELETE-%s", uuid.New().String())
+			var addOperationResponse mrds.AddOperationResponse
+			err := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.AddOperation, &mrds.AddOperationRequest{
+				MetaInstanceID: instance.Metadata.Id,
+				Operation: &mrdspb.Operation{
+					Id:       operationID,
+					Type:     mrdspb.OperationType_OperationType_DELETE,
+					IntentId: instance.DeploymentId,
+					Status: &mrdspb.OperationStatus{
+						State:   mrdspb.OperationState_OperationState_PREPARING,
+						Message: "Instance deletion requested",
+					},
+				},
+			}).Get(ctx, &addOperationResponse)
+			if err != nil {
+				return err
+			}
+
+			params.ChildWorkflowParams = append(params.ChildWorkflowParams, RunOperationWorkflowParams{
+				OperationID:    operationID,
+				OperationType:  mrdspb.OperationType_OperationType_DELETE,
+				MetaInstanceID: instance.Metadata.Id,
+			})
+		} else if len(instance.RuntimeInstances) == 0 {
 			operationID := fmt.Sprintf("CREATE-%s", uuid.New().String())
 			var addOperationResponse mrds.AddOperationResponse
 			err := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.AddOperation, &mrds.AddOperationRequest{
@@ -193,7 +238,9 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 	var operationFutures []workflow.Future
 	for _, instance := range metaInstances {
 		for _, operation := range instance.Operations {
-			if operation.Type != mrdspb.OperationType_OperationType_CREATE && operation.Type != mrdspb.OperationType_OperationType_UPDATE {
+			if operation.Type != mrdspb.OperationType_OperationType_CREATE &&
+				operation.Type != mrdspb.OperationType_OperationType_UPDATE &&
+				operation.Type != mrdspb.OperationType_OperationType_DELETE {
 				continue
 			}
 			if operation.Status.State != mrdspb.OperationState_OperationState_PREPARING {
@@ -224,6 +271,16 @@ func (d *DeploymentWorkflow) RunDeployment(ctx workflow.Context, params RunDeplo
 			return err
 		}
 		workflow.GetLogger(ctx).Info("Operation completed", "MetaInstance", runOperationWorkflowResponse.MetaInstance)
+
+		if runOperationWorkflowResponse.MetaInstance.Status.State == mrdspb.MetaInstanceState_MetaInstanceState_MARKED_FOR_DELETION {
+			var deleteMetaInstanceResponse mrds.DeleteMetaInstanceResponse
+			err := workflow.ExecuteActivity(ctx, d.metaInstanceActivities.DeleteMetaInstance, &mrds.DeleteMetaInstanceRequest{
+				MetaInstanceID: runOperationWorkflowResponse.MetaInstance.Metadata.Id,
+			}).Get(ctx, &deleteMetaInstanceResponse)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Mark the deployment as completed

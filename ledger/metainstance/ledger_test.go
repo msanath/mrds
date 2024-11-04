@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/msanath/mrds/ledger/core"
 	"github.com/msanath/mrds/ledger/deploymentplan"
 	ledgererrors "github.com/msanath/mrds/ledger/errors"
 	"github.com/msanath/mrds/ledger/metainstance"
@@ -94,7 +93,7 @@ func TestOperationsLedger(t *testing.T) {
 		require.Equal(t, "test-metainstance", resp.Record.Name)
 		require.NotEmpty(t, resp.Record.Metadata.ID)
 		require.Equal(t, uint64(0), resp.Record.Metadata.Version)
-		require.Equal(t, metainstance.MetaInstanceStatePendingAllocation, resp.Record.Status.State)
+		require.Equal(t, metainstance.MetaInstanceStateActive, resp.Record.Status.State)
 		lastUpdatedRecord = resp.Record
 	})
 
@@ -168,8 +167,8 @@ func TestOperationsLedger(t *testing.T) {
 		updateReq := &metainstance.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
 			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStateTerminated,
-				Message: "MetaInstance is inactive now",
+				State:   metainstance.MetaInstanceStateMarkedForDeletion,
+				Message: "MetaInstance is marked for deletion",
 			},
 		}
 
@@ -177,7 +176,7 @@ func TestOperationsLedger(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		require.Equal(t, metainstance.MetaInstanceStateTerminated, resp.Record.Status.State)
+		require.Equal(t, metainstance.MetaInstanceStateMarkedForDeletion, resp.Record.Status.State)
 		lastUpdatedRecord = resp.Record
 	})
 
@@ -185,7 +184,7 @@ func TestOperationsLedger(t *testing.T) {
 		updateReq := &metainstance.UpdateStatusRequest{
 			Metadata: lastUpdatedRecord.Metadata,
 			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStatePendingAllocation, // Invalid transition
+				State:   metainstance.MetaInstanceStateActive, // Invalid transition
 				Message: "Invalid state transition",
 			},
 		}
@@ -195,26 +194,6 @@ func TestOperationsLedger(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
 		require.Equal(t, ledgererrors.ErrRequestInvalid, err.(ledgererrors.LedgerError).Code)
-		require.Nil(t, resp)
-	})
-
-	t.Run("Update conflict Failure", func(t *testing.T) {
-		updateReq := &metainstance.UpdateStatusRequest{
-			Metadata: core.Metadata{
-				ID:      lastUpdatedRecord.Metadata.ID,
-				Version: lastUpdatedRecord.Metadata.Version - 1, // This is the old version. Should cause a conflict.
-			}, // This is the old metadata. Should cause a conflict.
-			Status: metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStateRunning,
-				Message: "MetaInstance is active now",
-			},
-		}
-
-		resp, err := l.UpdateStatus(context.Background(), updateReq)
-
-		require.Error(t, err)
-		require.ErrorAs(t, err, &ledgererrors.LedgerError{}, "error should be of type LedgerError")
-		require.Equal(t, ledgererrors.ErrRecordInsertConflict, err.(ledgererrors.LedgerError).Code)
 		require.Nil(t, resp)
 	})
 

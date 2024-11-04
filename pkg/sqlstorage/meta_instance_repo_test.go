@@ -56,7 +56,7 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 		},
 		Name: fmt.Sprintf("%s-0", metaInstanceidPrefix),
 		Status: metainstance.MetaInstanceStatus{
-			State:   metainstance.MetaInstanceStateRunning,
+			State:   metainstance.MetaInstanceStateActive,
 			Message: "",
 		},
 		DeploymentPlanID: "dp1",
@@ -342,11 +342,11 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 			newRecord.Metadata.ID = fmt.Sprintf("%s-%d", metaInstanceidPrefix, i+1)
 			newRecord.Metadata.Version = 0
 			newRecord.Name = fmt.Sprintf("%s-%d", metaInstanceidPrefix, i+1)
-			newRecord.Status.State = metainstance.MetaInstanceStateRunning
+			newRecord.Status.State = metainstance.MetaInstanceStateActive
 			newRecord.Status.Message = fmt.Sprintf("%s-%d is active", metaInstanceidPrefix, i+1)
 
 			if (i+1)%2 == 0 {
-				newRecord.Status.State = metainstance.MetaInstanceStateTerminated
+				newRecord.Status.State = metainstance.MetaInstanceStateMarkedForDeletion
 				newRecord.Status.Message = fmt.Sprintf("%s-%d is inactive", metaInstanceidPrefix, i+1)
 			}
 
@@ -394,12 +394,12 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 		t.Run("List Success With Filter", func(t *testing.T) {
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
-				StateIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateRunning},
+				StateIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateActive},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, metainstance.MetaInstanceStateRunning, record.Status.State)
+				require.Equal(t, metainstance.MetaInstanceStateActive, record.Status.State)
 			}
 		})
 
@@ -440,18 +440,18 @@ func TestMetaInstanceRecordLifecycle(t *testing.T) {
 
 		t.Run("List with StateNotIn", func(t *testing.T) {
 			records, err := repo.List(ctx, metainstance.MetaInstanceListFilters{
-				StateNotIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateRunning},
+				StateNotIn: []metainstance.MetaInstanceState{metainstance.MetaInstanceStateActive},
 			})
 			require.NoError(t, err)
 			require.Len(t, records, 5)
 			for _, record := range records {
-				require.Equal(t, metainstance.MetaInstanceStateTerminated, record.Status.State)
+				require.Equal(t, metainstance.MetaInstanceStateMarkedForDeletion, record.Status.State)
 			}
 		})
 
 		t.Run("Update State and check version", func(t *testing.T) {
 			status := metainstance.MetaInstanceStatus{
-				State:   metainstance.MetaInstanceStatePendingAllocation,
+				State:   metainstance.MetaInstanceStateUnknown,
 				Message: "Needs attention",
 			}
 			rec, err := repo.GetByName(ctx, fmt.Sprintf("%s-2", metaInstanceidPrefix))

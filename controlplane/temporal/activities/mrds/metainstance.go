@@ -21,6 +21,7 @@ func NewMetaInstanceActivities(client mrdspb.MetaInstancesClient, registry worke
 	registry.RegisterActivity(a.CreateMetaInstance)
 	registry.RegisterActivity(a.GetMetaInstanceByID)
 	registry.RegisterActivity(a.GetMetaInstanceByName)
+	registry.RegisterActivity(a.UpdateMetaInstanceStatus)
 	registry.RegisterActivity(a.WaitForOperationStatusApproved)
 	registry.RegisterActivity(a.ListMetaInstance)
 	registry.RegisterActivity(a.DeleteMetaInstance)
@@ -91,6 +92,46 @@ func (c *MetaInstanceActivities) ListMetaInstance(ctx context.Context, req *mrds
 	}
 
 	return resp, nil
+}
+
+type UpdateMetaInstanceStatusRequest struct {
+	MetaInstanceID string
+	Status         *mrdspb.MetaInstanceStatus
+}
+
+type UpdateMetaInstanceStatusResponse struct {
+	MetaInstance *mrdspb.MetaInstance
+}
+
+func (c *MetaInstanceActivities) UpdateMetaInstanceStatus(ctx context.Context, req *UpdateMetaInstanceStatusRequest) (*UpdateMetaInstanceStatusResponse, error) {
+	activity.GetLogger(ctx).Info("Updating MetaInstance status", "request", req)
+
+	// Get the Meta Instance by ID
+	metaInstance, err := c.GetMetaInstanceByID(ctx, &mrdspb.GetMetaInstanceByIDRequest{Id: req.MetaInstanceID})
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to get MetaInstance by ID", "error", err)
+		return nil, fmt.Errorf("failed to get MetaInstance by ID: %w", err)
+	}
+
+	if metaInstance.Record.Status.State == req.Status.State {
+		activity.GetLogger(ctx).Info("MetaInstance status is already updated", "status", req.Status)
+		return &UpdateMetaInstanceStatusResponse{
+			MetaInstance: metaInstance.Record,
+		}, nil
+	}
+
+	resp, err := c.client.UpdateStatus(ctx, &mrdspb.UpdateMetaInstanceStatusRequest{
+		Metadata: metaInstance.Record.Metadata,
+		Status:   req.Status,
+	})
+	if err != nil {
+		activity.GetLogger(ctx).Error("Failed to update MetaInstance status", "error", err)
+		return nil, fmt.Errorf("failed to update MetaInstance status: %w", err)
+	}
+
+	return &UpdateMetaInstanceStatusResponse{
+		MetaInstance: resp.Record,
+	}, nil
 }
 
 type DeleteMetaInstanceRequest struct {

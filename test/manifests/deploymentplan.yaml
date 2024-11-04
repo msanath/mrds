@@ -6,8 +6,8 @@ plans:
       - capabilityType: "GPU"
         comparator: "gte"
         capabilityNames:
-          - "nvidia-tesla-v100"
-          - "nvidia-tesla-p100"
+          - "nvidia-v100"
+          - "nvidia-p100"
       - capabilityType: "CPU"
         comparator: "eq"
         capabilityNames:
@@ -16,7 +16,7 @@ plans:
       - payloadName: "nginx-payload"
         resources:
           cores: 4
-          memory: 256
+          memory: 64
         ports:
           - protocol: "TCP"
             port: 80
