@@ -511,6 +511,17 @@ Total: 1
 You'll see that an instance is RUNNING and the operation was successful. The deployment `deployment-1` has been marked
 as complete too.
 
+You should now be able to see a pod on the local kind kubernetes cluster
+```bash
+> kubectl get pods -owide
+NAME                                   READY   STATUS    RESTARTS   AGE    IP           NODE           NOMINATED NODE   READINESS GATES
+8d893aed-a5df-43a9-890c-74677fbe5ff0   1/1     Running   0          10m    10.244.5.2   kind-worker2   <none>           <none>
+```
+
+In this example, the runtime implementation specific to kind is created [here](./pkg/runtime/kind). This takes
+the above deployment plan and creates a kubernetes (Pod)[https://kubernetes.io/docs/concepts/workloads/pods/], which
+runs a container for `nginx`.
+
 ### Scale up instances
 Scaling up instances is a matter of adding a new `Deployment` to the `DeploymentPlan`. Let's increase the instance
 count to 3. Run
