@@ -812,5 +812,68 @@ And here is the kubectl output
 > kubectl get pods -owide
 NAME                                   READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
 8d893aed-a5df-43a9-890c-74677fbe5ff0   1/1     Running   0          19m   10.244.5.2   kind-worker2   <none>           <none>
-```1
+```
 
+### Operate on instances
+If we want to move an instance from one node to another, this can be done by requesting a relocate
+operation on the instance. This operation is useful for instances where the current node is experiencing
+issues, resource constraints, or requires maintenance.
+
+Run
+```bash
+./bin/mrds-ctl deployment operate nginx-deployment-plan --relocate
+```
+
+After this, you should see an output like
+```bash
+./bin/mrds-ctl deployment show nginx-deployment-plan
+....
+Instances
++--------------------------------------+-----------------------+---------------+------------------------------------------+-----------------------------------------------------------------+
+|          Meta Instance Name          | Deployment Plan Name  | Deployment ID |            Runtime Instances             |                           Operations                            |
++--------------------------------------+-----------------------+---------------+------------------------------------------+-----------------------------------------------------------------+
+| nginx-service-6P7rl50eSlKsOEbYfWTiwg | nginx-deployment-plan | deployment-3  | Node Name: kind-worker3                  | ID: CREATE-ddd23f06-2050-4515-83e3-a07db62b1b7f                 |
+|                                      |                       |               | Is Active: false                         | Type: OperationType_CREATE                                      |
+|                                      |                       |               | ID: 39320622-c4df-4d18-aadf-16ea819d4950 | Intent ID: deployment-1                                         |
+|                                      |                       |               | State: RuntimeState_PENDING              | State: OperationState_SUCCEEDED                                 |
+|                                      |                       |               | Message:                                 | Message:                                                        |
+|                                      |                       |               | ----------------                         | ----------------                                                |
+|                                      |                       |               | Node Name: kind-worker2                  | ID: OperationType_RELOCATE-426a611b-59b5-43c0-ac99-1c4d44904916 |
+|                                      |                       |               | Is Active: true                          | Type: OperationType_RELOCATE                                    |
+|                                      |                       |               | ID: 8d893aed-a5df-43a9-890c-74677fbe5ff0 | Intent ID: User                                                 |
+|                                      |                       |               | State: RuntimeState_RUNNING              | State: OperationState_PENDING_APPROVAL                          |
+|                                      |                       |               | Message:                                 | Message: Operation is pending approval                          |
+|                                      |                       |               |                                          | ----------------                                                |
+|                                      |                       |               |                                          | ID: UPDATE-5a4684c0-80b7-461c-baa6-e292b81984c0                 |
+|                                      |                       |               |                                          | Type: OperationType_UPDATE                                      |
+|                                      |                       |               |                                          | Intent ID: deployment-2                                         |
+|                                      |                       |               |                                          | State: OperationState_SUCCEEDED                                 |
+|                                      |                       |               |                                          | Message:                                                        |
+|                                      |                       |               |                                          | ----------------                                                |
+|                                      |                       |               |                                          | ID: UPDATE-d4883bc3-afbe-40a8-9566-12525047f308                 |
+|                                      |                       |               |                                          | Type: OperationType_UPDATE                                      |
+|                                      |                       |               |                                          | Intent ID: deployment-3                                         |
+|                                      |                       |               |                                          | State: OperationState_SUCCEEDED                                 |
+|                                      |                       |               |                                          | Message:                                                        |
++--------------------------------------+-----------------------+---------------+------------------------------------------+-----------------------------------------------------------------+
+Total: 1
+```
+
+This shows a new passive (Is Active: false) runtime instance created, on a new node `kind-worker3`.  The previous one
+is still running on `kind-worker2`. There is a RELOCATE operation with state PENDING_APPROVAL. Once approved,
+the passive instance will be started and marked as active instance. The previous active instance will be
+removed.
+
+```bash
+./bin/mrds-ctl deployment approve-operation nginx-deployment-plan
+```
+
+Similarly, you can try stop and restart commands.
+```bash
+./bin/mrds-ctl deployment operate nginx-deployment-plan --stop
+./bin/mrds-ctl deployment operate nginx-deployment-plan --restart
+```
+
+## Architecture
+
+*TODO*

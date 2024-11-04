@@ -19,6 +19,7 @@ func NewDeploymentPlanCmd() *cobra.Command {
 	cmd.AddCommand(newAddDeploymentCmd())
 	cmd.AddCommand(newCancelDeploymentCmd())
 	cmd.AddCommand(newApproveOperationCmd())
+	cmd.AddCommand(newOperateOption())
 
 	return &cmd
 }
