@@ -1,8 +1,6 @@
 package types
 
 // DisplayMetaInstance represents the display version of the MetaInstanceRecord.
-//
-//go:generate /Users/sanath/projects/gondolf/bin/cligen DisplayMetaInstance types types_gen.go
 type DisplayMetaInstance struct {
 	Metadata           DisplayMetadata           `json:"metadata,omitempty"`
 	Name               string                    `json:"name,omitempty" displayName:"Meta Instance Name" columnTag:"name"`

@@ -24,7 +24,7 @@ prepare: ## Create the build directory if it doesn't exist
 
 # Build all binaries
 .PHONY: build
-build: prepare proto tidy gofmt ## Compile all services and binaries
+build: prepare tidy gofmt ## Compile all services and binaries
 	$(GO) build -o $(BUILD_DIR)/mrds-apiserver ./cmd/apiserver
 	$(GO) build -o $(BUILD_DIR)/mrds-controlplane ./cmd/controlplane
 	$(GO) build -o $(BUILD_DIR)/mrds-ctl ./cmd/ctl

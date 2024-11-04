@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/manifoldco/promptui v0.9.0
-	github.com/msanath/gondolf v0.0.0-00010101000000-000000000000
+	github.com/msanath/gondolf v0.0.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	go.temporal.io/api v1.38.0
@@ -79,5 +79,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace github.com/msanath/gondolf => ../gondolf

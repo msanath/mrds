@@ -3,8 +3,6 @@ package types
 import "github.com/msanath/mrds/ctl/metainstance/types"
 
 // DisplayDeploymentPlan represents the display version of the DeploymentPlanRecord.
-//
-//go:generate /Users/sanath/projects/gondolf/bin/cligen DisplayDeploymentPlan types types_gen.go
 type DisplayDeploymentPlan struct {
 	Metadata                    DisplayMetadata                    `json:"metadata,omitempty"`
 	Name                        string                             `json:"name,omitempty" displayName:"Deployment Plan Name" columnTag:"name"`

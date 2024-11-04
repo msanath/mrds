@@ -3,8 +3,6 @@ package types
 import "time"
 
 // DisplayNode is a display representation of the NodeRecord
-//
-//go:generate /Users/sanath/projects/gondolf/bin/cligen DisplayNode types types_gen.go
 type DisplayNode struct {
 	Metadata           DisplayMetadata      `json:"metadata,omitempty"`
 	Name               string               `json:"name,omitempty" displayName:"Node Name" columnTag:"name"`
